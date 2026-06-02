@@ -24,7 +24,7 @@ Một container chạy giống hệt nhau trên mọi máy có Docker — laptop
 │  ┌────────────────────────────────┐  │
 │  │  App code (Python/Node/Go...)  │  │
 │  ├────────────────────────────────┤  │
-│  │  Runtime (Python 3.11)        │  │
+│  │  Runtime (Python 3.11)         │  │
 │  ├────────────────────────────────┤  │
 │  │  Thư viện (requests, flask...) │  │
 │  ├────────────────────────────────┤  │
@@ -39,14 +39,14 @@ Một container chạy giống hệt nhau trên mọi máy có Docker — laptop
 ## Docker vs Virtual Machine
 
 ```
-Virtual Machine                        Container
-──────────────────────────────────     ──────────────────────────────────
-[ App A  ]   [ App B  ]                [ App A ]  [ App B ]  [ App C ]
-[ Libs A ]   [ Libs B ]                [ Libs A]  [ Libs B]  [ Libs C]
-[ Guest OS ] [ Guest OS ]              └─────────────────────────────┘
-[ Hypervisor (VMware/VBox) ]                  Container Runtime
-[ Host OS                  ]                  [ Host OS (Linux) ]
-[ Physical Hardware        ]                  [ Physical Hardware]
+Virtual Machine                                      Container
+──────────────────────────────────           ──────────────────────────────────
+[ App A  ]        [ App B  ]                  [ App A ]  [ App B ]  [ App C ]
+[ Libs A ]        [ Libs B ]                  [ Libs A]  [ Libs B]  [ Libs C]
+[ Guest OS ]    [ Guest OS ]                 └─────────────────────────────┘
+[ Hypervisor (VMware/VBox) ]                        Container Runtime
+[ Host OS                  ]                        [ Host OS (Linux) ]
+[ Physical Hardware        ]                        [ Physical Hardware]
 ```
 
 | Tiêu chí | VM | Container |
