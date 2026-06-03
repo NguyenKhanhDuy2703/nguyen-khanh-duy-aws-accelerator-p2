@@ -52,6 +52,12 @@ Terraform has been successfully initialized!
 
 ## `terraform plan`
 
+### Sơ đồ luồng `terraform plan`
+
+![Terraform plan flow](../../assets/flow_terraform_plan.png)
+
+Sơ đồ này mô tả cách Terraform đọc file cấu hình, so sánh với state hiện tại và tạo ra plan để bạn xem trước thay đổi trước khi áp dụng.
+
 **Bước quan trọng nhất** — xem preview thay đổi trước khi apply.
 
 ```bash

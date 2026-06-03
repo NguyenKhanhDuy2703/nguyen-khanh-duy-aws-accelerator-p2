@@ -2,6 +2,12 @@
 
 > Lộ trình học Terraform từ cơ bản đến production-ready — dành cho người mới bắt đầu.
 
+### Sơ đồ vòng đời Terraform
+
+![Terraform — vòng đời đầy đủ](../../assets/terraform_lifecycle_overview.svg)
+
+Sơ đồ mô tả 4 giai đoạn chính (`init` → `plan` → `apply` → `destroy`) và các thành phần liên quan (providers, backend, state, modules).
+
 ## Cấu trúc tài liệu
 
 | File                                               | Nội dung                                    | Thời gian ước tính |
