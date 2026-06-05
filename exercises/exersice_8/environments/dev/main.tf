@@ -5,6 +5,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 6.0"
     }
+    tls = {
+      source  = "hashicorp/tls"
+      version = "~> 4.0"
+    } 
   }
 }
 
@@ -46,11 +50,11 @@ module "compute" {
   aws_ami_owner  = var.aws_ami_owner
   instance_type  = var.instance_type
   subnet_id      = values(module.vpc.public_subnet_ids)[0]
-  security_group_id = module.security.sg-ec2
+  ec2_security_group_id = module.security.sg-ec2
+  alb_security_group_id = module.security.sg-alb
   vpc_name       = var.vpc_name
   owner          = var.owner
+  subnet_ids     = values(module.vpc.public_subnet_ids)
+  vpc_id         = module.vpc.vpc_id
 }
-
-
-
 

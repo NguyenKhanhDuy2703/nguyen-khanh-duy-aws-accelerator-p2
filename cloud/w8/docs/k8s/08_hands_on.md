@@ -214,6 +214,7 @@ kubectl logs -l app=web-app --prefix
 
 ## Bước 4 — Service
 
+
 Tạo file `04-service.yaml`:
 
 ```yaml

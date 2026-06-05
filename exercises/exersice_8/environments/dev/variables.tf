@@ -30,7 +30,7 @@ variable "aws_ami_owner" {
 
 variable "instance_type" {
   type    = string
-  default = "t3.micro"
+  default = "t3.medium" # 2 vCPU, 4GB RAM — đủ cho minikube + 4 Pods
 }
 
 variable "bucket_name" {
