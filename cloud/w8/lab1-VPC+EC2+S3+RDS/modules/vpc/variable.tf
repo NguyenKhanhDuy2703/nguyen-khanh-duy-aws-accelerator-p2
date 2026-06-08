@@ -1,5 +1,5 @@
 variable "vpc_name" {
-  description = "Nam of the VPC"
+  description = "Name of the VPC"
   type = string
 }
 variable "owner" {

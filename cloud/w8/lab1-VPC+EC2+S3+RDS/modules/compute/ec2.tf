@@ -19,12 +19,12 @@ data "aws_ami" "ubuntu" {
   }
 }
 resource "aws_instance" "ec2_instance" {
-  ami = data.aws_ami.ubuntu.id
-  instance_type = var.instance_type
-  subnet_id = var.subnet_id
-  security_groups = [var.security_group_id]
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = var.instance_type
+  subnet_id              = var.subnet_id
+  vpc_security_group_ids = [var.security_group_id]
   tags = {
-    Name = "${var.vpc_name}-ec2-instance"
+    Name  = "${var.vpc_name}-ec2-instance"
     Owner = var.owner
   }
 }
