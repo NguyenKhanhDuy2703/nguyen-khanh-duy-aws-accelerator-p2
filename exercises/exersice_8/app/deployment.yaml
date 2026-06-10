@@ -5,7 +5,7 @@ metadata:
   labels:
     app: system
 spec:
-  replicas: 2  # HPA sẽ tự điều chỉnh từ 2 → 8 tùy CPU/memory load
+  replicas: 2 
   selector:
     matchLabels:
       app: system
@@ -61,8 +61,6 @@ spec:
 
 ---
 
-# HorizontalPodAutoscaler — tự động scale dựa trên CPU
-# Yêu cầu: metrics-server đã được enable (minikube addons enable metrics-server)
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -72,15 +70,15 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: my-app-deployment
-  minReplicas: 2   # tối thiểu 2 Pod (high availability)
-  maxReplicas: 8   # tối đa 8 Pod (t3.medium: 2 vCPU, 4GB đủ chỗ)
+  minReplicas: 2   
+  maxReplicas: 8  
   metrics:
   - type: Resource
     resource:
       name: cpu
       target:
         type: Utilization
-        averageUtilization: 60  # scale up khi CPU trung bình > 60%
+        averageUtilization: 60  
   - type: Resource
     resource:
       name: memory

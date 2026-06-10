@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bài tập thực hành W9 — GitOps + Observability + Canary</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #0f172a;
+  --brand-accent: #f59e0b;
+  --brand-accent-2: #fb923c;
+  --brand-secondary: #3b82f6;
+  --brand-danger: #ef4444;
+  --brand-success: #22c55e;
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --border: #e2e8f0;
+  --surface-dark: #ffffff;
+  --surface-card: #f8fafc;
+  --gradient-warm: linear-gradient(135deg, #f59e0b, #ef4444);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-snap-type: y mandatory; scroll-behavior: smooth; overflow-x: hidden; }
+body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--surface-dark); color: var(--text-primary); line-height: 1.5; }
+.slide {
+  min-height: 100vh; width: 100%; scroll-snap-align: start; scroll-snap-stop: always;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  padding: clamp(28px, 4vh, 72px) clamp(24px, 5vw, 120px); position: relative; overflow: hidden;
+}
+.slide-title { background: var(--surface-dark); }
+.slide-title::before { content:''; position:absolute; top:-30%; right:-20%; width:60%; height:80%; background:radial-gradient(circle, rgba(245,158,11,0.12) 0%, transparent 70%); pointer-events:none; }
+.slide-title::after { content:''; position:absolute; bottom:-20%; left:-15%; width:50%; height:60%; background:radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 70%); pointer-events:none; }
+.slide-title h1 { font-size: clamp(2rem, 5vw, 4rem); font-weight: 800; line-height: 1.1; letter-spacing:-0.03em; margin-bottom: 16px; }
+.slide-title .lead { font-size: clamp(1rem, 2vw, 1.25rem); color: var(--text-secondary); max-width: 760px; }
+.gradient-text { background: var(--gradient-warm); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.slide-divider { text-align:center; }
+.slide-divider::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at center, rgba(245,158,11,0.06) 0%, transparent 60%); pointer-events:none; }
+.section-number { font-family:'JetBrains Mono', monospace; font-size: clamp(5rem, 12vw, 10rem); font-weight:700; -webkit-text-stroke:2px rgba(245,158,11,0.2); color:transparent; line-height:1; margin-bottom:-20px; }
+.section-label { font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.15em; color:var(--brand-accent); margin-bottom:8px; }
+.slide-divider h2 { font-size: clamp(1.6rem, 4vw, 3rem); font-weight:800; line-height:1.15; }
+.slide-divider .lead { font-size: clamp(0.95rem, 1.5vw, 1.1rem); color: var(--text-secondary); margin-top:12px; max-width:640px; }
+.slide-content { width:100%; max-width:1100px; }
+.slide-header { margin-bottom: clamp(20px, 3vh, 36px); }
+.slide-header h2 { font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight:800; line-height:1.15; }
+.slide-header .lead { font-size: clamp(0.85rem, 1.2vw, 1rem); color: var(--text-secondary); margin-top: 6px; }
+.slide-footer { position:absolute; bottom:18px; left:40px; right:40px; display:flex; justify-content:space-between; font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; }
+.eyebrow { font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:var(--brand-accent); margin-bottom:8px; }
+.badge { display:inline-block; padding:3px 10px; border-radius:4px; font-size:0.7rem; font-weight:700; letter-spacing:0.04em; }
+.badge-accent { background: rgba(245,158,11,0.15); color: var(--brand-accent); }
+.badge-blue { background: rgba(59,130,246,0.15); color: var(--brand-secondary); }
+.badge-success { background: rgba(34,197,94,0.15); color: var(--brand-success); }
+.grid { display:grid; gap: clamp(12px, 2vw, 18px); }
+.grid-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+.card { background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: clamp(14px, 2vw, 22px); }
+.card h3 { font-size: clamp(0.92rem, 1.2vw, 1.1rem); font-weight:700; margin-bottom:8px; }
+.card p, .card li { font-size: clamp(0.82rem, 1vw, 0.92rem); color: var(--text-secondary); line-height:1.45; }
+.card-dark { background: var(--brand-primary); border-color: rgba(245,158,11,0.2); color:#e2e8f0; }
+.card-dark h3 { color:#fff; }
+.card-accent { background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(251,146,60,0.05)); border-color: rgba(245,158,11,0.3); }
+.card-accent h3 { color: var(--brand-accent); }
+.stat-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; }
+.stat { text-align:center; padding: 14px; border:1px solid var(--border); border-radius: 10px; background: var(--surface-card); }
+.stat b { display:block; font-size: 1.15rem; color: var(--text-primary); }
+.bullets { list-style:none; padding:0; }
+.bullets li { padding:8px 0 8px 18px; position:relative; border-bottom:1px solid var(--border); }
+.bullets li:last-child { border-bottom:none; }
+.bullets li::before { content:''; position:absolute; left:0; top:14px; width:8px; height:8px; border-radius:50%; background:var(--brand-accent); }
+.two-col { display:grid; grid-template-columns: 1fr 1fr; gap: clamp(18px, 3vw, 30px); align-items:start; }
+.task { border-left: 4px solid var(--brand-accent); padding-left: 10px; margin-bottom: 10px; }
+.task strong { color: var(--text-primary); }
+.tip { background:#fff7ed; border:1px solid #fed7aa; color:#9a5b00; padding:12px; border-radius:10px; font-size:0.9rem; }
+.code { font-family:'JetBrains Mono', monospace; font-size: 0.9em; background: rgba(51,65,85,0.12); padding:2px 6px; border-radius:4px; color:#0f172a; }
+pre { background:#111827; color:#e5eefb; border-radius:10px; padding:12px; overflow:auto; font-size:0.82rem; line-height:1.45; font-family:'JetBrains Mono', monospace; }
+.checkpoint { background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.3); border-radius:10px; padding:12px 14px; font-size:0.88rem; color:var(--text-secondary); }
+.checkpoint strong { color:var(--brand-success); }
+.meta-chips { display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; justify-content:center; }
+.chip { display:flex; align-items:center; gap:6px; padding:6px 12px; background:var(--surface-card); border:1px solid var(--border); border-radius:999px; font-size:0.8rem; }
+.chip strong { color: var(--text-primary); }
+.progress-bar { position:fixed; top:0; left:0; height:3px; background: var(--gradient-warm); z-index:1000; width:0%; transition: width .25s; }
+.nav-dots { position:fixed; right:16px; top:50%; transform:translateY(-50%); z-index:1000; display:flex; flex-direction:column; gap:8px; }
+.nav-dot { width: 9px; height: 9px; border-radius: 50%; background: rgba(148,163,184,0.35); cursor:pointer; border:none; padding:0; }
+.nav-dot.active { background: var(--brand-accent); transform: scale(1.35); }
+.slide-counter { position:fixed; bottom:18px; right:18px; font-family:'JetBrains Mono', monospace; font-size:0.82rem; color:var(--text-muted); z-index:1000; }
+.slide-counter strong { color: var(--text-primary); }
+@media (max-width: 900px) { .two-col, .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .nav-dots { display:none; } .slide { padding: 24px 18px; } }
+</style>
+</head>
+<body>
+<div class="progress-bar" id="progress"></div>
+<nav class="nav-dots" id="navDots"></nav>
+<div class="slide-counter" id="counter"><strong>01</strong> / 06</div>
+
+<section class="slide slide-title">
+  <div class="eyebrow">W9 Exercise Deck</div>
+  <h1>Bài tập thực hành W9 — <span class="gradient-text">GitOps + Observability + Canary</span></h1>
+  <p class="lead">Đề bài theo format slide, tập trung vào 3 ngày học T2–T4: GitOps &amp; CI/CD, Observability &amp; SLO, Canary &amp; Progressive Delivery.</p>
+  <div class="meta-chips">
+    <div class="chip"><strong>Task</strong> 15 mục</div>
+    <div class="chip"><strong>Format</strong> slide / presentation</div>
+    <div class="chip"><strong>Output</strong> reflection + manifests</div>
+  </div>
+</section>
+
+<section class="slide slide-divider">
+  <div class="section-number">01</div>
+  <div class="section-label">Overview</div>
+  <h2>Mục tiêu của tuần học</h2>
+  <p class="lead">Từ setup GitOps đến canary deploy, bạn sẽ vận hành ứng dụng theo luồng thực tế: code → CI/CD → sync → monitor → rollback/abort.</p>
+</section>
+
+<section class="slide">
+  <div class="slide-content">
+    <div class="slide-header">
+      <div class="eyebrow">Yêu cầu chung</div>
+      <h2>Điều kiện cần nộp bài</h2>
+      <p class="lead">Hoàn thành đúng theo 3 ngày học và ghi kết quả vào reflection.md.</p>
+    </div>
+    <div class="two-col">
+      <div class="card card-accent">
+        <h3>Chuẩn bị</h3>
+        <ul class="bullets">
+          <li>Fork repo mẫu và làm việc trên nhánh <span class="code">feat/hello-gitops</span></li>
+          <li>Giữ commit theo chuẩn <span class="code">[W9-D1]</span>, <span class="code">[W9-D2]</span>, <span class="code">[W9-D3]</span></li>
+          <li>Ghi screenshot / output quan trọng vào <span class="code">reflection.md</span></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Rubric chấm điểm</h3>
+        <div class="stat-grid">
+          <div class="stat"><b>30%</b> GitOps + rollback</div>
+          <div class="stat"><b>35%</b> Observability + SLO</div>
+          <div class="stat"><b>35%</b> Canary + abort</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer"><span>Overview</span></div>
+</section>
+
+<section class="slide slide-divider">
+  <div class="section-number">02</div>
+  <div class="section-label">T2 — D1</div>
+  <h2>GitOps &amp; CI/CD</h2>
+  <p class="lead">Tập trung vào workflow, sync Git → cluster, và rollback đúng quy trình GitOps.</p>
+</section>
+
+<section class="slide">
+  <div class="slide-content">
+    <div class="slide-header">
+      <div class="eyebrow">Task list</div>
+      <h2>15 task theo ngày T2</h2>
+    </div>
+    <div class="grid grid-2">
+      <div class="card">
+        <div class="task"><strong>1.</strong> Fork repo mẫu, tạo nhánh <span class="code">feat/hello-gitops</span> bằng <span class="code">git checkout -b feat/hello-gitops</span>.</div>
+        <div class="task"><strong>2.</strong> Viết workflow GitHub Actions để chạy <strong>plan</strong> khi mở PR và <strong>apply</strong> khi merge vào <span class="code">main</span>. File: <span class="code">.github/workflows/gitops.yml</span>.</div>
+        <div class="task"><strong>3.</strong> Cài ArgoCD vào Minikube, tạo <span class="code">Application</span> trỏ tới repo GitOps của bạn bằng <span class="code">kubectl apply -n argocd -f install.yaml</span>.</div>
+      </div>
+      <div class="card">
+        <div class="task"><strong>4.</strong> So sánh rollback bằng <span class="code">git revert</span> và <span class="code">kubectl rollout undo</span>; ghi kết quả vào <span class="code">reflection.md</span>.</div>
+        <div class="task"><strong>5.</strong> Commit hàng ngày với message <span class="code">[W9-D1] gitops: setup argocd app</span>.</div>
+        <div class="tip">Tip: Bắt đầu với App of Apps: tạo Application cha quản lý nhiều Application con, sync 1 app trước rồi mới nâng cấp.</div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer"><span>T2 — GitOps &amp; CI/CD</span></div>
+</section>
+
+<section class="slide slide-divider">
+  <div class="section-number">03</div>
+  <div class="section-label">T3 — D2</div>
+  <h2>Observability &amp; SLO</h2>
+  <p class="lead">Mục tiêu: đo lường, cảnh báo và dashboard hóa service bằng Prometheus, Grafana, Loki.</p>
+</section>
+
+<section class="slide">
+  <div class="slide-content">
+    <div class="slide-header">
+      <div class="eyebrow">Task list</div>
+      <h2>Thực hành T3</h2>
+    </div>
+    <div class="grid grid-2">
+      <div class="card">
+        <div class="task"><strong>6.</strong> Deploy Prometheus + Grafana + Loki lên Minikube bằng Helm.</div>
+        <div class="task"><strong>7.</strong> Định nghĩa 2 SLI: availability (%) và latency p99 (ms).</div>
+        <div class="task"><strong>8.</strong> Viết PromQL query đo error rate: <span class="code">rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m])</span>.</div>
+      </div>
+      <div class="card">
+        <div class="task"><strong>9.</strong> Tạo alert multi-window burn rate với fast window 1h × 5m, slow window 6h × 30m.</div>
+        <div class="task"><strong>10.</strong> Import dashboard Grafana, thêm panel SLO burn rate và chụp screenshot vào reflection.md.</div>
+        <div class="tip">Tip: Bắt đầu bằng OTel Collector nhận metric từ app rồi đẩy vào Prometheus; dùng Helm chart <strong>opentelemetry-collector</strong> nếu muốn nhanh hơn.</div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer"><span>T3 — Observability &amp; SLO</span></div>
+</section>
+
+<section class="slide slide-divider">
+  <div class="section-number">04</div>
+  <div class="section-label">T4 — D3</div>
+  <h2>Canary &amp; Progressive Delivery</h2>
+  <p class="lead">Kiểm thử deploy an toàn bằng canary, analysis template và tự động abort / rollback khi sai.</p>
+</section>
+
+<section class="slide">
+  <div class="slide-content">
+    <div class="slide-header">
+      <div class="eyebrow">Task list</div>
+      <h2>Thực hành T4</h2>
+    </div>
+    <div class="grid grid-2">
+      <div class="card">
+        <div class="task"><strong>11.</strong> Cài Argo Rollouts controller và kubectl plugin vào Minikube.</div>
+        <div class="task"><strong>12.</strong> Chuyển Deployment W8 thành <span class="code">Rollout</span> CRD, dùng strategy canary <strong>10% → 30% → 100%</strong>.</div>
+        <div class="task"><strong>13.</strong> Viết <span class="code">AnalysisTemplate</span> dùng Prometheus query, abort khi error rate &gt; 5%.</div>
+      </div>
+      <div class="card">
+        <div class="task"><strong>14.</strong> Dùng <span class="code">k6</span> inject lỗi giả (ví dụ 50% error rate) để quan sát Rollout tự abort.</div>
+        <div class="task"><strong>15.</strong> Ghi toàn bộ flow vào <span class="code">reflection.md</span>: GitOps sync → deploy canary → alert → abort.</div>
+        <div class="tip">Tip: Test abort trước buổi live 15h. Nếu Rollout stuck ở trạng thái Degraded, dùng <span class="code">kubectl argo rollouts get rollout --watch</span> để debug.</div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer"><span>T4 — Canary &amp; Progressive Delivery</span></div>
+</section>
+
+<section class="slide">
+  <div class="slide-content">
+    <div class="slide-header">
+      <div class="eyebrow">Gợi ý nộp bài</div>
+      <h2>Cấu trúc thư mục bạn nên chuẩn bị</h2>
+    </div>
+    <div class="card card-accent">
+      <pre>cloud/w9/exercise/
+  reflection.md
+  .github/workflows/gitops.yml
+  analysisTemplate.yaml
+  load-test.js
+  rollout.yaml</pre>
+    </div>
+    <div class="checkpoint" style="margin-top:12px;">👉 <strong>Lưu ý:</strong> Không cần hoàn thành tất cả trong 1 ngày; hãy làm theo tuần tự để có đủ evidence cho reflection.</div>
+  </div>
+  <div class="slide-footer"><span>Submission guide</span></div>
+</section>
+
+<script>
+const slides = document.querySelectorAll('.slide');
+const progress = document.getElementById('progress');
+const counter = document.getElementById('counter');
+const navDots = document.getElementById('navDots');
+
+slides.forEach((_, i) => {
+  const dot = document.createElement('button');
+  dot.className = 'nav-dot';
+  dot.setAttribute('aria-label', 'Go to slide ' + (i + 1));
+  dot.addEventListener('click', () => slides[i].scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  navDots.appendChild(dot);
+});
+
+function updateState() {
+  const current = Math.min(slides.length, Math.max(1, Math.round(window.scrollY / (document.documentElement.scrollHeight - window.innerHeight) * slides.length) || 1));
+  progress.style.width = `${(current / slides.length) * 100}%`;
+  counter.innerHTML = `<strong>${String(current).padStart(2, '0')}</strong> / ${String(slides.length).padStart(2, '0')}`;
+  document.querySelectorAll('.nav-dot').forEach((dot, i) => dot.classList.toggle('active', i + 1 === current));
+}
+
+window.addEventListener('scroll', updateState, { passive: true });
+window.addEventListener('load', updateState);
+window.addEventListener('resize', updateState);
+</script>
+</body>
+</html>
