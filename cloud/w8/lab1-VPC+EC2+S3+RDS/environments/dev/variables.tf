@@ -55,7 +55,7 @@ variable "db_username" {
 variable "db_password" {
   description = "Master password for RDS MySQL. Supply via TF_VAR_db_password or terraform.tfvars — never hardcode."
   type        = string
-  sensitive   = true
+  sensitive   = false
 }
 
 variable "db_instance_class" {
