@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: frontend-container
-          image: my-repo/my-react-app:latest # Image chứa code React đã build (npm run build)
+          image: nkd7059181/frontend:a2c04972361f569d308f38664c3a9c1f9c48232d
           ports:
             - containerPort: 80
           volumeMounts:
