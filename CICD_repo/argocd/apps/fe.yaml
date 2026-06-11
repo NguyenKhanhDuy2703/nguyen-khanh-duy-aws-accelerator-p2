@@ -10,8 +10,8 @@ spec:
     targetRevision: HEAD
     path: CICD_repo/FE
     directory:
-      include: "deployment.yaml,service.yaml,nginx-config.yaml,namespace.yaml"
-      exclude: "package.json,package-lock.json,vite.config.js,src/**"
+      include: '*.yaml'
+      exclude: 'node_modules/**,dist/**,src/**,package*.json,vite.config.js,.dockerignore,Dockerfile'
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: fullstack-namespace
