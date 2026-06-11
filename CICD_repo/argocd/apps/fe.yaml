@@ -1,18 +1,20 @@
-# Nội dung file cloud/w9/exercise/apps/app-dev.yaml
 apiVersion: argoproj.io/v1alpha1
-kind: Application       # Root App đọc chữ này để biết đây là 1 App con
+kind: Application
 metadata:
-  name: backend-dev    # Tên sẽ hiển thị trên giao diện Argo CD
+  name: frontend-dev
   namespace: argocd
 spec:
+  project: default
   source:
     repoURL: 'https://github.com/NguyenKhanhDuy2703/nguyen-khanh-duy-aws-accelerator-p2.git'
     targetRevision: main
     path: CICD_repo/FE
   destination:
     server: 'https://kubernetes.default.svc'
-    namespace: dev-namespace
+    namespace: fullstack-namespace
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
