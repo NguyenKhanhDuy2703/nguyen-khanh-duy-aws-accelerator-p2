@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deploy
+  namespace: fullstack-namespace
+spec:
+  replicas: 2 # Chạy 2 bản sao Backend để chịu tải
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend-container
+          image: my-repo/my-nodejs-backend:latest # Thay bằng image thật của bạn
+          ports:
+            - containerPort: 8080 # Cổng mà code Node.js/Java của bạn đang lắng nghe

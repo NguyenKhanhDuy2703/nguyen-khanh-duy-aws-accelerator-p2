@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deploy
+  namespace: fullstack-namespace
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend-container
+          image: my-repo/my-react-app:latest # Image chứa code React đã build (npm run build)
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: nginx-config-volume
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf # Ép Nginx dùng cấu hình ta vừa viết ở trên
+      volumes:
+        - name: nginx-config-volume
+          configMap:
+            name: react-nginx-config

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-svc
+  namespace: fullstack-namespace
+spec:
+  type: LoadBalancer # Xin AWS cấp 1 địa chỉ IP Public để người dùng truy cập web
+  selector:
+    app: frontend
+  ports:
+    - protocol: TCP
+      port: 80       # Người dùng gõ port 80 (HTTP)
+      targetPort: 80 # Trỏ vào Nginx port 80

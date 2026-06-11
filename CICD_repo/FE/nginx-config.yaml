@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: react-nginx-config
+  namespace: fullstack-namespace
+data:
+  default.conf: |
+    server {
+        listen 80;
+        
+        # 1. PHỤC VỤ FILE REACT
+        location / {
+            root /usr/share/nginx/html;
+            index index.html index.htm;
+            # Dòng này cực kỳ quan trọng cho React Router (để không bị lỗi 404 khi F5)
+            try_files $uri $uri/ /index.html; 
+        }
+
+        # 2. CHUYỂN TIẾP API XUỐNG BACKEND (Reverse Proxy)
+        location /api/ {
+            # Bất cứ ai gọi domain.com/api/... sẽ được Nginx bẻ lái gọi vào địa chỉ nội bộ này
+            proxy_pass http://backend-svc:8080/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+    }
