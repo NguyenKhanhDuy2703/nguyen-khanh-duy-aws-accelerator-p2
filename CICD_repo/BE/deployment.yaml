@@ -15,6 +15,6 @@ spec:
     spec:
       containers:
         - name: backend-container
-          image: my-repo/my-nodejs-backend:latest # Thay bằng image thật của bạn
+          image: my-repo/my-nodejs-backend:latest
           ports:
-            - containerPort: 8080 # Cổng mà code Node.js/Java của bạn đang lắng nghe
+            - containerPort: 8080

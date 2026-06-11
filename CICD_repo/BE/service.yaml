@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: backend-svc # TÊN NÀY CỰC KỲ QUAN TRỌNG, ĐÂY LÀ ĐỊA CHỈ DNS
+  name: backend-svc
   namespace: fullstack-namespace
 spec:
-  type: ClusterIP # Chỉ cho phép mạng nội bộ K8s gọi vào, tuyệt đối an toàn
+  type: ClusterIP
   selector:
     app: backend
   ports:
