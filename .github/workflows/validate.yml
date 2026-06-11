@@ -3,16 +3,28 @@ name: validate
 on:
   pull_request:
     paths:
-      - "cloud/w9/exercise/gitops-repo/**" # 1. SỬA ĐƯỜNG DẪN MONITOR TẠI ĐÂY
+      - "CICD_repo/**/*.yaml"
+      - "CICD_repo/**/*.yml"
+      - ".github/workflows/validate.yml"
+  push:
+    paths:
+      - "CICD_repo/**/*.yaml"
+      - "CICD_repo/**/*.yml"
+      - ".github/workflows/validate.yml"
 
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Install kubeconform
         run: |
           curl -sSLo kc.tgz https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
-          tar -xzf kc.tgz && sudo mv kubeconform /usr/local/bin/
-      - name: Run kubeconform check
-        run: kubeconform -strict -summary cloud/w9/exercise/gitops-repo/ # 2. SỬA ĐƯỜNG DẪN QUÉT FILE TẠI ĐÂY
+          tar -xzf kc.tgz
+          sudo mv kubeconform /usr/local/bin/
+
+      - name: Validate Kubernetes manifests in CICD_repo
+        run: |
+          kubeconform -strict -summary CICD_repo/
