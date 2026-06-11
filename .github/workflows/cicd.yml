@@ -3,14 +3,15 @@ name: Build and Deploy
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'CICD_repo/FE/**'
+      - 'CICD_repo/BE/**'
 
 jobs:
-  # Job Build FE
   build-frontend:
     runs-on: ubuntu-latest
     permissions: { contents: write }
-    # Chỉ chạy job này nếu có file trong thư mục FE bị thay đổi
-    if: paths: ['CICD_repo/FE/**'] 
+    if: contains(github.event.head_commit.modified, 'CICD_repo/FE/')
     steps:
       - uses: actions/checkout@v4
       - name: Build and Push FE
@@ -19,15 +20,18 @@ jobs:
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}
       - name: Update FE manifest
         run: |
-          sed -i "s|image:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}|g" ./CICD_repo/FE/deployment.yaml
-          # (Thêm lệnh git commit & push ở đây)
+          # Dùng yq (cần cài đặt sudo apt-get install -y yq)
+          yq -i '.spec.template.spec.containers[0].image = "${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}"' ./CICD_repo/FE/deployment.yaml
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git add ./CICD_repo/FE/deployment.yaml
+          git commit -m "Update FE image to ${{ github.sha }}"
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} main
 
-  # Job Build BE
   build-backend:
     runs-on: ubuntu-latest
     permissions: { contents: write }
-    # Chỉ chạy job này nếu có file trong thư mục BE bị thay đổi
-    if: paths: ['CICD_repo/BE/**']
+    if: contains(github.event.head_commit.modified, 'CICD_repo/BE/')
     steps:
       - uses: actions/checkout@v4
       - name: Build and Push BE
@@ -36,5 +40,9 @@ jobs:
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }}
       - name: Update BE manifest
         run: |
-          sed -i "s|image:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }}|g" ./CICD_repo/BE/deployment.yaml
-          # (Thêm lệnh git commit & push ở đây)
+          yq -i '.spec.template.spec.containers[0].image = "${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }}"' ./CICD_repo/BE/deployment.yaml
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git add ./CICD_repo/BE/deployment.yaml
+          git commit -m "Update BE image to ${{ github.sha }}"
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} main
