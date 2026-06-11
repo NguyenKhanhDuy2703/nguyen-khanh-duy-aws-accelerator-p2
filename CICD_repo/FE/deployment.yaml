@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: frontend-container
-          image: nkd7059181/frontend:a2c04972361f569d308f38664c3a9c1f9c48232d
+          image: nkd7059181/frontend:4d5d04d13cb19975452a81f511821dbe8c6fc650
           ports:
             - containerPort: 80
           volumeMounts:
