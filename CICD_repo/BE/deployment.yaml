@@ -15,6 +15,6 @@ spec:
     spec:
       containers:
       - name: backend-container
-        image: my-repo/my-nodejs-backend:latest
+      image: ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }}
       ports:
         - containerPort: 8080
