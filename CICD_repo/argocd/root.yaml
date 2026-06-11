@@ -10,7 +10,7 @@ spec:
   source:
     repoURL: 'https://github.com/NguyenKhanhDuy2703/nguyen-khanh-duy-aws-accelerator-p2.git'
     targetRevision: main
-    path: apps 
+    path: CICD_repo/argocd/apps 
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: argocd # BẮT BUỘC: Vì các App con bản chất cũng là tài nguyên của ArgoCD, nên nó phải được đẻ ra ở đây.
