@@ -1,0 +1,37 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [ main ] # Lắng nghe sự kiện khi merge/push vào nhánh main
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Build cho Frontend (làm tương tự cho Backend)
+      - name: Build and Push Frontend
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }} ./CICD_repo/FE
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}
+
+      # Tự động cập nhật file deployment.yaml trên Git
+      - name: Update deployment image
+        run: |
+          # Dùng sed để thay đổi image trong file yaml
+          sed -i "s|image:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}|g" ./CICD_repo/FE/deployment.yaml
+          
+          # Cấu hình git để push thay đổi ngược lại repo
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add ./CICD_repo/FE/deployment.yaml
+          git commit -m "Update image tag to ${{ github.sha }}"
+          git push origin main

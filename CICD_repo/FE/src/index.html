@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simple Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero-card">
+        <p class="eyebrow">Cloud DevOps Demo</p>
+        <h1>UI đơn giản cho FE</h1>
+        <p class="lead">
+          Đây là giao diện mẫu để bạn xem trước khi nối backend hoặc triển khai
+          lên Kubernetes.
+        </p>
+
+        <div class="actions">
+          <button id="refreshBtn" class="btn btn-primary">Refresh trạng thái</button>
+          <button id="themeBtn" class="btn btn-secondary">Đổi theme</button>
+        </div>
+      </section>
+
+      <section class="stats-grid">
+        <article class="stat-card accent-blue">
+          <span>API Status</span>
+          <strong id="apiStatus">Online</strong>
+          <small>Backend đang chạy</small>
+        </article>
+        <article class="stat-card accent-green">
+          <span>Deploy</span>
+          <strong>Argo CD</strong>
+          <small>GitOps ready</small>
+        </article>
+        <article class="stat-card accent-gold">
+          <span>Counter</span>
+          <strong id="counterValue">0</strong>
+          <small>Nhấn nút để tăng</small>
+        </article>
+      </section>
+
+      <section class="panel-grid">
+        <article class="panel-card">
+          <h2>Thông tin nhanh</h2>
+          <ul>
+            <li>Trang này dùng HTML/CSS/JS thuần.</li>
+            <li>Phù hợp để test trước khi tích hợp React.</li>
+            <li>Dễ mở trực tiếp bằng nginx hoặc port-forward.</li>
+          </ul>
+        </article>
+
+        <article class="panel-card">
+          <h2>Hướng dẫn</h2>
+          <ol>
+            <li>Đổi ảnh FE trong deployment nếu bạn muốn dùng UI này.</li>
+            <li>Nối API ở phần backend để lấy dữ liệu thật.</li>
+            <li>Thêm bảng, biểu đồ hoặc form khi cần.</li>
+          </ol>
+        </article>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
