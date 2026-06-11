@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: 'https://github.com/NguyenKhanhDuy2703/nguyen-khanh-duy-aws-accelerator-p2.git'
     targetRevision: main
-    path: ../../BE
+    path: CICD_repo/FE
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: dev-namespace
