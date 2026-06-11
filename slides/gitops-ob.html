@@ -1,0 +1,2091 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>W9 — GitOps · Observability · Progressive Delivery</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg-0: #0a0d12;
+    --bg-1: #0f1318;
+    --bg-2: #151a22;
+    --bg-3: #1c2330;
+    --border: #ffffff14;
+    --border-hi: #ffffff28;
+    --text-0: #e8edf5;
+    --text-1: #9aaec4;
+    --text-2: #5c7292;
+    --accent-green: #00d37f;
+    --accent-blue: #3b8fe8;
+    --accent-orange: #e87c3b;
+    --accent-purple: #9b6fe8;
+    --accent-red: #e84b4b;
+    --accent-teal: #3be8c4;
+    --accent-yellow: #e8c33b;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-body: 'Inter', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg-0);
+    color: var(--text-0);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* ─── NAV ─── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    background: rgba(10,13,18,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 0 32px;
+    height: 52px;
+  }
+  .nav-logo {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent-green);
+    letter-spacing: 0.08em;
+    margin-right: auto;
+  }
+  .nav-link {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-2);
+    text-decoration: none;
+    padding: 0 14px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .nav-link:hover, .nav-link.active { color: var(--text-0); border-bottom-color: var(--accent-green); }
+
+  /* ─── HERO ─── */
+  .hero {
+    padding: 120px 64px 80px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .hero-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    color: var(--accent-green);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .hero-title {
+    font-size: 52px;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+  }
+  .hero-title span { color: var(--accent-green); }
+  .hero-sub {
+    font-size: 18px;
+    color: var(--text-1);
+    max-width: 640px;
+    margin-bottom: 48px;
+  }
+  .pipeline-banner {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 28px;
+    max-width: 680px;
+    overflow: hidden;
+  }
+  .pipe-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+  }
+  .pipe-dot {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .pipe-label { font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
+  .pipe-desc { font-size: 10px; color: var(--text-2); text-align: center; }
+  .pipe-arrow {
+    flex: 0 0 auto;
+    color: var(--text-2);
+    font-size: 18px;
+    padding: 0 8px;
+    padding-bottom: 20px;
+  }
+  .pd-green { background: rgba(0,211,127,0.15); color: var(--accent-green); }
+  .pd-orange { background: rgba(232,124,59,0.15); color: var(--accent-orange); }
+  .pd-purple { background: rgba(155,111,232,0.15); color: var(--accent-purple); }
+
+  /* ─── SECTIONS ─── */
+  .section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 80px 64px;
+    border-top: 1px solid var(--border);
+  }
+  .section-tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--text-2);
+    margin-bottom: 10px;
+  }
+  .section-title {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 8px;
+  }
+  .section-desc {
+    color: var(--text-1);
+    font-size: 15px;
+    max-width: 600px;
+    margin-bottom: 48px;
+  }
+
+  /* ─── CARDS ─── */
+  .card-grid { display: grid; gap: 16px; }
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+  .card {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .card:hover { border-color: var(--border-hi); background: var(--bg-3); }
+  .card-icon { font-size: 24px; margin-bottom: 12px; }
+  .card-title { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+  .card-body { font-size: 13px; color: var(--text-1); line-height: 1.5; }
+
+  .card-accent-green { border-left: 3px solid var(--accent-green); }
+  .card-accent-blue { border-left: 3px solid var(--accent-blue); }
+  .card-accent-orange { border-left: 3px solid var(--accent-orange); }
+  .card-accent-purple { border-left: 3px solid var(--accent-purple); }
+  .card-accent-red { border-left: 3px solid var(--accent-red); }
+  .card-accent-teal { border-left: 3px solid var(--accent-teal); }
+  .card-accent-yellow { border-left: 3px solid var(--accent-yellow); }
+
+  /* ─── CODE BLOCK ─── */
+  .code-block {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 1.7;
+    overflow-x: auto;
+  }
+  .code-block .c-comment { color: var(--text-2); }
+  .code-block .c-key { color: var(--accent-teal); }
+  .code-block .c-val { color: var(--accent-orange); }
+  .code-block .c-str { color: var(--accent-green); }
+  .code-block .c-num { color: var(--accent-purple); }
+
+  /* ─── DIAGRAM SVG CONTAINERS ─── */
+  .diagram-container {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px;
+    overflow-x: auto;
+    margin-bottom: 32px;
+  }
+  .diagram-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-2);
+    margin-bottom: 20px;
+  }
+
+  /* ─── INLINE SVG ─── */
+  svg text { font-family: 'JetBrains Mono', monospace; }
+
+  /* ─── METRICS PANEL ─── */
+  .metrics-row { display: flex; gap: 16px; margin-bottom: 24px; }
+  .metric-box {
+    flex: 1;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+  }
+  .metric-value { font-size: 32px; font-weight: 700; font-family: var(--font-mono); }
+  .metric-label { font-size: 11px; color: var(--text-2); margin-top: 4px; letter-spacing: 0.05em; text-transform: uppercase; }
+
+  /* ─── TIMELINE ─── */
+  .timeline { position: relative; padding-left: 28px; }
+  .timeline::before {
+    content: ''; position: absolute;
+    left: 7px; top: 6px; bottom: 6px;
+    width: 2px; background: var(--border);
+  }
+  .tl-item { position: relative; padding: 0 0 32px 20px; }
+  .tl-dot {
+    position: absolute; left: -21px; top: 4px;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    border: 2px solid var(--bg-0);
+  }
+  .tl-time { font-family: var(--font-mono); font-size: 11px; color: var(--text-2); margin-bottom: 4px; }
+  .tl-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .tl-desc { font-size: 13px; color: var(--text-1); }
+
+  /* ─── COMPARISON TABLE ─── */
+  .compare-table { width: 100%; border-collapse: collapse; }
+  .compare-table th, .compare-table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .compare-table th {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-2);
+    background: var(--bg-1);
+  }
+  .compare-table tr:hover td { background: var(--bg-2); }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-green { background: rgba(0,211,127,0.15); color: var(--accent-green); }
+  .badge-red { background: rgba(232,75,75,0.15); color: var(--accent-red); }
+  .badge-yellow { background: rgba(232,195,59,0.15); color: var(--accent-yellow); }
+  .badge-blue { background: rgba(59,143,232,0.15); color: var(--accent-blue); }
+
+  /* ─── CALLOUT ─── */
+  .callout {
+    border-radius: 10px;
+    padding: 18px 22px;
+    font-size: 13.5px;
+    line-height: 1.6;
+    margin: 24px 0;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .callout-icon { font-size: 20px; flex-shrink: 0; padding-top: 1px; }
+  .callout-green { background: rgba(0,211,127,0.08); border: 1px solid rgba(0,211,127,0.25); }
+  .callout-orange { background: rgba(232,124,59,0.08); border: 1px solid rgba(232,124,59,0.25); }
+  .callout-red { background: rgba(232,75,75,0.08); border: 1px solid rgba(232,75,75,0.25); }
+  .callout-blue { background: rgba(59,143,232,0.08); border: 1px solid rgba(59,143,232,0.25); }
+
+  /* ─── TABS ─── */
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 32px; }
+  .tab-btn {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 12px 20px;
+    background: none; border: none; cursor: pointer;
+    color: var(--text-2);
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+    margin-bottom: -1px;
+  }
+  .tab-btn:hover { color: var(--text-1); }
+  .tab-btn.active { color: var(--accent-green); border-bottom-color: var(--accent-green); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ─── FOOTER ─── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 64px;
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--text-2);
+    font-size: 12px;
+    font-family: var(--font-mono);
+  }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 768px) {
+    .hero, .section { padding: 80px 24px 40px; }
+    .hero-title { font-size: 32px; }
+    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    .metrics-row { flex-wrap: wrap; }
+    nav { padding: 0 16px; }
+    .nav-link { display: none; }
+    footer { padding: 32px 24px; flex-direction: column; gap: 8px; }
+  }
+
+  /* Scroll indicator */
+  #progress-bar {
+    position: fixed; top: 52px; left: 0; right: 0;
+    height: 2px; background: var(--bg-2); z-index: 99;
+  }
+  #progress-fill {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, var(--accent-green), var(--accent-blue));
+    transition: width 0.1s;
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="nav-logo">W9 // DEVOPS DEEP DIVE</span>
+  <a class="nav-link active" href="#overview">Overview</a>
+  <a class="nav-link" href="#layer1">GitOps</a>
+  <a class="nav-link" href="#layer2">Observability</a>
+  <a class="nav-link" href="#layer3">Canary</a>
+  <a class="nav-link" href="#infra">Hạ tầng</a>
+  <a class="nav-link" href="#infra2">Hạ tầng sâu</a>
+  <a class="nav-link" href="#pitfalls">Pitfalls</a>
+</nav>
+
+<div id="progress-bar"><div id="progress-fill"></div></div>
+
+<!-- ═══════════════ HERO ═══════════════ -->
+<section class="hero" id="overview">
+  <div class="hero-eyebrow">Workshop 9 — Infrastructure Analysis</div>
+  <h1 class="hero-title">Ba vòng lặp <span>reconcile</span><br>lồng vào nhau</h1>
+  <p class="hero-sub">Phân tích kiến trúc W9: GitOps (ArgoCD), Observability (Prometheus/Grafana), và Progressive Delivery (Argo Rollouts) — không phải 3 topic độc lập mà là 1 pipeline tích hợp.</p>
+
+  <div class="pipeline-banner">
+    <div class="pipe-node">
+      <div class="pipe-dot pd-green">🔀</div>
+      <span class="pipe-label" style="color:var(--accent-green)">GitOps</span>
+      <span class="pipe-desc">Git = source<br>of truth</span>
+    </div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-node">
+      <div class="pipe-dot pd-orange">📊</div>
+      <span class="pipe-label" style="color:var(--accent-orange)">Observe</span>
+      <span class="pipe-desc">SLI/SLO/<br>Error Budget</span>
+    </div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-node">
+      <div class="pipe-dot pd-purple">🚀</div>
+      <span class="pipe-label" style="color:var(--accent-purple)">Deliver</span>
+      <span class="pipe-desc">Canary thả<br>từng bước</span>
+    </div>
+  </div>
+
+  <div class="callout callout-blue" style="margin-top:32px;max-width:680px">
+    <span class="callout-icon">💡</span>
+    <div><strong>Tư duy cốt lõi:</strong> K8s có reconcile loop riêng (controller manager). ArgoCD thêm loop ở tầng cao hơn với Git làm desired state. Argo Rollouts thêm loop ở giữa, hijack quá trình rollout. Ba vòng lồng nhau: <code style="font-family:var(--font-mono);color:var(--accent-teal)">K8s ← Argo Rollouts ← ArgoCD ← Git</code></div>
+  </div>
+
+  <!-- D3 Reconcile Loop Diagram -->
+  <div class="diagram-container" style="margin-top:40px">
+    <div class="diagram-title">⟳ Ba vòng lặp reconcile lồng nhau — tổng quan hệ thống</div>
+    <svg id="reconcile-svg" width="100%" height="380" viewBox="0 0 900 380"></svg>
+  </div>
+</section>
+
+<!-- ═══════════════ LAYER 1: GitOps ═══════════════ -->
+<section class="section" id="layer1">
+  <div class="section-tag">Layer 1 — Buổi sáng</div>
+  <h2 class="section-title">GitOps & ArgoCD</h2>
+  <p class="section-desc">ArgoCD là một reconciliation loop — desired state đến từ Git. Mọi thay đổi không qua Git đều bị ghi đè.</p>
+
+  <div class="diagram-container">
+    <div class="diagram-title">⟳ ArgoCD Reconcile Loop</div>
+    <svg id="argocd-flow-svg" width="100%" height="300" viewBox="0 0 860 300"></svg>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('argocd','concepts')">Concepts</button>
+    <button class="tab-btn" onclick="switchTab('argocd','appofapps')">App-of-Apps</button>
+    <button class="tab-btn" onclick="switchTab('argocd','syncwave')">Sync Waves</button>
+    <button class="tab-btn" onclick="switchTab('argocd','selfheal')">selfHeal Trap</button>
+  </div>
+
+  <div id="argocd-concepts" class="tab-panel active">
+    <div class="card-grid grid-3">
+      <div class="card card-accent-green">
+        <div class="card-icon">🗃️</div>
+        <div class="card-title">Git = Source of Truth</div>
+        <div class="card-body">Git repo chứa toàn bộ Kubernetes manifests. ArgoCD poll repo 3 phút/lần. <strong>Desired state KHÔNG nằm trong cluster</strong> — nằm trong Git. Đây là điểm khác biệt cốt lõi với kubectl apply truyền thống.</div>
+      </div>
+      <div class="card card-accent-blue">
+        <div class="card-icon">🔄</div>
+        <div class="card-title">Reconcile vs Deploy</div>
+        <div class="card-body">ArgoCD không "deploy" — nó <em>reconcile</em>. Nó liên tục so sánh <strong>desired</strong> (Git) vs <strong>actual</strong> (cluster) và apply delta. Giống HPA điều chỉnh replicas, nhưng scope toàn bộ cluster.</div>
+      </div>
+      <div class="card card-accent-orange">
+        <div class="card-icon">📌</div>
+        <div class="card-title">3 Trạng thái ArgoCD</div>
+        <div class="card-body"><strong style="color:var(--accent-green)">Synced ✓</strong> — YAML cluster = Git<br><strong style="color:var(--accent-green)">Healthy ✓</strong> — Pods running OK<br><strong style="color:var(--accent-red)">Synced ✓ + Degraded ✗</strong> — YAML đúng nhưng image lỗi → Pod crash. Đây là trạng thái nguy hiểm nhất vì ArgoCD không phát hiện được.</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="argocd-appofapps" class="tab-panel">
+    <div class="callout callout-orange">
+      <span class="callout-icon">⚠️</span>
+      <div><strong>Vấn đề:</strong> Ai quản lý Application object? Nếu bạn <code style="font-family:var(--font-mono)">kubectl apply -f argocd-apps/</code> thủ công thì đã phá vỡ GitOps — chính Application object không được quản lý bởi Git.</div>
+    </div>
+
+    <div class="diagram-container">
+      <div class="diagram-title">App-of-Apps Pattern</div>
+      <svg id="appofapps-svg" width="100%" height="260" viewBox="0 0 800 260"></svg>
+    </div>
+
+    <div class="card-grid grid-2">
+      <div class="code-block">
+<span class="c-comment"># k8s-api/argocd/apps/root.yaml</span>
+<span class="c-key">apiVersion:</span> <span class="c-str">argoproj.io/v1alpha1</span>
+<span class="c-key">kind:</span> <span class="c-str">Application</span>
+<span class="c-key">metadata:</span>
+  <span class="c-key">name:</span> <span class="c-str">root</span>
+  <span class="c-key">namespace:</span> <span class="c-str">argocd</span>
+<span class="c-key">spec:</span>
+  <span class="c-key">source:</span>
+    <span class="c-key">repoURL:</span> <span class="c-str">https://github.com/you/k8s-api</span>
+    <span class="c-key">path:</span> <span class="c-str">argocd/apps</span>  <span class="c-comment"># ← folder chứa các app con</span>
+  <span class="c-key">destination:</span>
+    <span class="c-key">server:</span> <span class="c-str">https://kubernetes.default.svc</span>
+  <span class="c-key">syncPolicy:</span>
+    <span class="c-key">automated:</span>
+      <span class="c-key">selfHeal:</span> <span class="c-val">true</span>
+      <span class="c-key">prune:</span> <span class="c-val">true</span>
+      </div>
+      <div>
+        <div class="card card-accent-teal" style="margin-bottom:12px">
+          <div class="card-title">Quy trình đúng sau khi có root</div>
+          <div class="card-body" style="font-family:var(--font-mono);font-size:12px;line-height:1.9">
+            1. Tạo file YAML app mới<br>
+            2. Đặt vào <code>argocd/apps/</code><br>
+            3. <code>git add . && git push</code><br>
+            4. Root App phát hiện → tạo App con tự động<br>
+            5. App con sync → deploy workload<br>
+            <br>
+            <strong style="color:var(--accent-green)">Không bao giờ kubectl apply trực tiếp!</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="argocd-syncwave" class="tab-panel">
+    <div class="callout callout-red">
+      <span class="callout-icon">💥</span>
+      <div><strong>Lỗi thiếu sync-wave:</strong> Deployment apply TRƯỚC ConfigMap → Pod start nhưng không đọc được config → crash. Kubernetes apply tất cả resources cùng lúc nếu không có ordering.</div>
+    </div>
+    <div class="diagram-container">
+      <div class="diagram-title">Sync Wave Order — NS→CM→Deploy→Svc</div>
+      <svg id="syncwave-svg" width="100%" height="220" viewBox="0 0 800 220"></svg>
+    </div>
+    <div class="code-block">
+<span class="c-comment"># Namespace — wave 0 (first)</span>
+<span class="c-key">metadata:</span>
+  <span class="c-key">annotations:</span>
+    <span class="c-str">argocd.argoproj.io/sync-wave:</span> <span class="c-num">"0"</span>
+<span class="c-comment">---</span>
+<span class="c-comment"># ConfigMap — wave 1</span>
+<span class="c-key">metadata:</span>
+  <span class="c-key">annotations:</span>
+    <span class="c-str">argocd.argoproj.io/sync-wave:</span> <span class="c-num">"1"</span>
+<span class="c-comment">---</span>
+<span class="c-comment"># Deployment — wave 2</span>
+<span class="c-key">metadata:</span>
+  <span class="c-key">annotations:</span>
+    <span class="c-str">argocd.argoproj.io/sync-wave:</span> <span class="c-num">"2"</span>
+<span class="c-comment">---</span>
+<span class="c-comment"># Service — wave 3 (last)</span>
+<span class="c-key">metadata:</span>
+  <span class="c-key">annotations:</span>
+    <span class="c-str">argocd.argoproj.io/sync-wave:</span> <span class="c-num">"3"</span>
+    </div>
+  </div>
+
+  <div id="argocd-selfheal" class="tab-panel">
+    <div class="callout callout-red">
+      <span class="callout-icon">🪤</span>
+      <div><strong>Bẫy selfHeal kinh điển:</strong> Bạn chạy <code style="font-family:var(--font-mono)">kubectl rollout undo</code> để rollback khẩn cấp. Nhưng trong ~3 phút, ArgoCD poll Git → phát hiện drift → ghi đè lại bản lỗi từ Git. Rollback của bạn biến mất.</div>
+    </div>
+    <div class="card-grid grid-2">
+      <div class="card card-accent-red">
+        <div class="card-icon">❌</div>
+        <div class="card-title">Sai — kubectl rollout undo</div>
+        <div class="card-body">
+          <ol style="margin-left:16px;line-height:2">
+            <li>kubectl rollout undo deployment/api</li>
+            <li>Pod rollback thành công ✓</li>
+            <li>3 phút sau ArgoCD poll...</li>
+            <li>Drift detected: cluster ≠ Git</li>
+            <li>selfHeal: apply lại Git (bản lỗi!)</li>
+            <li style="color:var(--accent-red)">💥 Undo bị ghi đè, lỗi quay lại</li>
+          </ol>
+        </div>
+      </div>
+      <div class="card card-accent-green">
+        <div class="card-icon">✅</div>
+        <div class="card-title">Đúng — git revert → push</div>
+        <div class="card-body">
+          <ol style="margin-left:16px;line-height:2">
+            <li>git revert HEAD (hoặc sửa image tag)</li>
+            <li>git push origin main</li>
+            <li>ArgoCD poll phát hiện change</li>
+            <li>ArgoCD apply bản cũ từ Git</li>
+            <li style="color:var(--accent-green)">✓ Rollback thành công, Git là truth</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ LAYER 2: Observability ═══════════════ -->
+<section class="section" id="layer2">
+  <div class="section-tag">Layer 2 — Buổi chiều phần 1</div>
+  <h2 class="section-title">Observability Stack</h2>
+  <p class="section-desc">SLI đo từ góc độ người dùng. Error budget biến cảm tính thành số. Burn rate cảnh báo trước khi budget cạn.</p>
+
+  <div class="diagram-container">
+    <div class="diagram-title">Luồng thu thập metrics — Flask → Prometheus → Grafana</div>
+    <svg id="obs-flow-svg" width="100%" height="220" viewBox="0 0 860 220"></svg>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('obs','sli')">SLA/SLO/SLI</button>
+    <button class="tab-btn" onclick="switchTab('obs','budget')">Error Budget</button>
+    <button class="tab-btn" onclick="switchTab('obs','burnrate')">Burn Rate</button>
+    <button class="tab-btn" onclick="switchTab('obs','promql')">PromQL</button>
+  </div>
+
+  <div id="obs-sli" class="tab-panel active">
+    <div class="card-grid grid-3">
+      <div class="card card-accent-blue">
+        <div class="card-icon">📋</div>
+        <div class="card-title">SLA — Service Level Agreement</div>
+        <div class="card-body">Hợp đồng với khách hàng. Vi phạm → đền tiền, mất uy tín. VD: <em>"99% uptime/tháng"</em>. Đây là cam kết pháp lý, không phải technical target.</div>
+      </div>
+      <div class="card card-accent-orange">
+        <div class="card-icon">🎯</div>
+        <div class="card-title">SLO — Service Level Objective</div>
+        <div class="card-body">Mục tiêu nội bộ, chặt hơn SLA để có buffer. VD: <em>"99.5% success rate / 30 ngày"</em>. Nếu SLA = 99%, SLO = 99.5% → có 0.5% buffer trước khi breach SLA.</div>
+      </div>
+      <div class="card card-accent-green">
+        <div class="card-icon">📏</div>
+        <div class="card-title">SLI — Service Level Indicator</div>
+        <div class="card-body">Số đo thực tế từ user perspective: <code style="font-family:var(--font-mono)">success_req / total_req</code>. <strong>Không phải CPU usage!</strong> CPU là resource metric, không đo user experience.</div>
+      </div>
+    </div>
+    <div class="callout callout-blue" style="margin-top:24px">
+      <span class="callout-icon">🔗</span>
+      <div><strong>Quan hệ:</strong> SLI đo thực tế → so với SLO (target nội bộ) → nếu vi phạm SLO liên tục → có nguy cơ vi phạm SLA (hợp đồng) → đền tiền.</div>
+    </div>
+  </div>
+
+  <div id="obs-budget" class="tab-panel">
+    <div class="metrics-row">
+      <div class="metric-box">
+        <div class="metric-value" style="color:var(--accent-orange)">99.5%</div>
+        <div class="metric-label">SLO Target</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-value" style="color:var(--accent-yellow)">0.5%</div>
+        <div class="metric-label">Error Budget</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-value" style="color:var(--accent-green)">216</div>
+        <div class="metric-label">Phút/tháng</div>
+      </div>
+    </div>
+
+    <div class="diagram-container">
+      <div class="diagram-title">Error Budget — Tính toán từ SLO</div>
+      <svg id="budget-svg" width="100%" height="240" viewBox="0 0 800 240"></svg>
+    </div>
+
+    <div class="callout callout-orange">
+      <span class="callout-icon">💡</span>
+      <div><strong>Error budget là công cụ ra quyết định:</strong> Còn budget → team có thể deploy, thử nghiệm. Hết budget → dừng mọi thay đổi rủi ro, focus vào reliability. Biến tranh luận cảm tính "deploy hay không?" thành quyết định bằng số.</div>
+    </div>
+  </div>
+
+  <div id="obs-burnrate" class="tab-panel">
+    <div class="diagram-container">
+      <div class="diagram-title">Burn Rate — Tốc độ tiêu thụ Error Budget</div>
+      <svg id="burnrate-svg" width="100%" height="300" viewBox="0 0 800 300"></svg>
+    </div>
+
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>Error Rate</th>
+          <th>Burn Rate</th>
+          <th>Budget cạn trong</th>
+          <th>Mức độ</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>0.5%</td>
+          <td><span class="badge badge-green">1×</span></td>
+          <td>30 ngày (đúng kế hoạch)</td>
+          <td><span class="badge badge-green">NORMAL</span></td>
+        </tr>
+        <tr>
+          <td>5%</td>
+          <td><span class="badge badge-yellow">10×</span></td>
+          <td>3 ngày</td>
+          <td><span class="badge badge-yellow">WARN</span></td>
+        </tr>
+        <tr>
+          <td>7.2%</td>
+          <td><span class="badge badge-red">14.4×</span></td>
+          <td>~2 ngày</td>
+          <td><span class="badge badge-red">CRITICAL</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="card-grid grid-2" style="margin-top:24px">
+      <div class="card card-accent-orange">
+        <div class="card-icon">⚡</div>
+        <div class="card-title">Fast window: 1h × 5min</div>
+        <div class="card-body">Bắt sự cố cháy nhanh. Nếu burn rate cao trong 1h, check lại 5 phút trước để xác nhận — tránh false positive do spike ngắn.</div>
+      </div>
+      <div class="card card-accent-blue">
+        <div class="card-icon">🐌</div>
+        <div class="card-title">Slow window: 6h × 30min</div>
+        <div class="card-body">Bắt degradation âm thầm. Lỗi 5% trong 6h liên tục là vấn đề nghiêm trọng hơn lỗi 20% trong 10 phút rồi hết.</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="obs-promql" class="tab-panel">
+    <div class="card-grid grid-2">
+      <div>
+        <h3 style="font-size:14px;font-weight:600;margin-bottom:12px;color:var(--accent-teal)">SLI query — Success rate</h3>
+        <div class="code-block">
+<span class="c-comment"># Tỷ lệ request thành công 5 phút gần nhất</span>
+<span class="c-key">sum</span>(<span class="c-val">rate</span>(<span class="c-str">flask_http_request_total</span>{
+  <span class="c-str">status</span>=~<span class="c-str">"2.."</span>
+}[<span class="c-num">5m</span>]))
+/
+<span class="c-key">sum</span>(<span class="c-val">rate</span>(<span class="c-str">flask_http_request_total</span>[<span class="c-num">5m</span>]))
+        </div>
+
+        <h3 style="font-size:14px;font-weight:600;margin:20px 0 12px;color:var(--accent-teal)">Burn rate query (dùng trong AnalysisTemplate)</h3>
+        <div class="code-block">
+<span class="c-comment"># Burn rate cho Argo Rollouts</span>
+<span class="c-key">sum</span>(<span class="c-val">rate</span>(<span class="c-str">http_requests_total</span>{
+  <span class="c-str">status</span>=~<span class="c-str">"2.."</span>
+}[<span class="c-num">2m</span>]))
+/
+<span class="c-key">sum</span>(<span class="c-val">rate</span>(<span class="c-str">http_requests_total</span>[<span class="c-num">2m</span>]))
+<span class="c-comment">
+# Threshold: >= 0.95 → PASS
+# < 0.95 (3 lần) → ABORT</span>
+        </div>
+      </div>
+      <div>
+        <h3 style="font-size:14px;font-weight:600;margin-bottom:12px;color:var(--accent-teal)">ServiceMonitor CRD</h3>
+        <div class="code-block">
+<span class="c-key">apiVersion:</span> <span class="c-str">monitoring.coreos.com/v1</span>
+<span class="c-key">kind:</span> <span class="c-str">ServiceMonitor</span>
+<span class="c-key">metadata:</span>
+  <span class="c-key">name:</span> <span class="c-str">flask-app</span>
+<span class="c-key">spec:</span>
+  <span class="c-key">selector:</span>
+    <span class="c-key">matchLabels:</span>
+      <span class="c-key">app:</span> <span class="c-str">flask-api</span>
+  <span class="c-key">endpoints:</span>
+  - <span class="c-key">port:</span> <span class="c-str">http</span>
+    <span class="c-key">path:</span> <span class="c-str">/metrics</span>
+    <span class="c-key">interval:</span> <span class="c-str">15s</span>
+        </div>
+        <div class="callout callout-green" style="margin-top:16px">
+          <span class="callout-icon">✅</span>
+          <div>ServiceMonitor là cầu nối CRD: thay vì sửa prometheus.yml thủ công, khai báo một ServiceMonitor object → kube-prometheus-stack tự động cấu hình scrape target.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ LAYER 3: Canary ═══════════════ -->
+<section class="section" id="layer3">
+  <div class="section-tag">Layer 3 — Buổi chiều phần 2</div>
+  <h2 class="section-title">Canary & Argo Rollouts</h2>
+  <p class="section-desc">Argo Rollouts hijack quá trình rollout của Deployment, kiểm soát traffic từng bước và tự động abort dựa trên metrics.</p>
+
+  <div class="diagram-container">
+    <div class="diagram-title">Canary Deployment Flow — 4 bước tự động</div>
+    <svg id="canary-flow-svg" width="100%" height="280" viewBox="0 0 900 280"></svg>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('canary','steps')">Canary Steps</button>
+    <button class="tab-btn" onclick="switchTab('canary','analysis')">AnalysisTemplate</button>
+    <button class="tab-btn" onclick="switchTab('canary','goodbad')">Good vs Bad Run</button>
+    <button class="tab-btn" onclick="switchTab('canary','yaml')">Rollout YAML</button>
+  </div>
+
+  <div id="canary-steps" class="tab-panel active">
+    <div class="diagram-container">
+      <div class="diagram-title">Traffic weight progression</div>
+      <svg id="canary-steps-svg" width="100%" height="200" viewBox="0 0 800 200"></svg>
+    </div>
+    <div class="card-grid grid-4">
+      <div class="card card-accent-orange">
+        <div class="card-icon">25%</div>
+        <div class="card-title">setWeight: 25</div>
+        <div class="card-body">25% traffic → v2. 75% vẫn ở v1. Argo Rollouts tạo canary ReplicaSet riêng.</div>
+      </div>
+      <div class="card card-accent-yellow">
+        <div class="card-icon">⏸️</div>
+        <div class="card-title">pause: {}</div>
+        <div class="card-body">Chờ promote (thủ công) hoặc AnalysisTemplate tự động quyết định.</div>
+      </div>
+      <div class="card card-accent-blue">
+        <div class="card-icon">50%</div>
+        <div class="card-title">setWeight: 50</div>
+        <div class="card-body">Tăng lên 50/50. Tiếp tục theo dõi metrics. AnalysisRun chạy song song.</div>
+      </div>
+      <div class="card card-accent-green">
+        <div class="card-icon">✅</div>
+        <div class="card-title">setWeight: 100</div>
+        <div class="card-body">Promoted! 100% traffic → v2. Canary ReplicaSet scale down, stable ReplicaSet update.</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="canary-analysis" class="tab-panel">
+    <div class="callout callout-purple" style="background:rgba(155,111,232,0.08);border:1px solid rgba(155,111,232,0.25)">
+      <span class="callout-icon">🧠</span>
+      <div><strong>AnalysisTemplate</strong> là chiếc cầu nối hai tầng: chạy ở tầng control (Argo Rollouts) nhưng query data từ tầng dữ liệu (Prometheus) để đưa ra quyết định tự động về traffic.</div>
+    </div>
+    <div class="code-block" style="margin-top:20px">
+<span class="c-key">apiVersion:</span> <span class="c-str">argoproj.io/v1alpha1</span>
+<span class="c-key">kind:</span> <span class="c-str">AnalysisTemplate</span>
+<span class="c-key">metadata:</span>
+  <span class="c-key">name:</span> <span class="c-str">success-rate</span>
+<span class="c-key">spec:</span>
+  <span class="c-key">metrics:</span>
+  - <span class="c-key">name:</span> <span class="c-str">success-rate</span>
+    <span class="c-key">interval:</span> <span class="c-str">30s</span>       <span class="c-comment"># query Prometheus mỗi 30s</span>
+    <span class="c-key">successCondition:</span> <span class="c-str">result[0] >= 0.95</span>  <span class="c-comment"># ≥ 95% → pass</span>
+    <span class="c-key">failureLimit:</span> <span class="c-num">3</span>       <span class="c-comment"># 3× fail → ABORT tự động</span>
+    <span class="c-key">provider:</span>
+      <span class="c-key">prometheus:</span>
+        <span class="c-key">address:</span> <span class="c-str">http://prometheus:9090</span>
+        <span class="c-key">query:</span> |
+          <span class="c-str">sum(rate(http_requests_total{status=~"2.."}[2m]))</span>
+          <span class="c-str">/ sum(rate(http_requests_total[2m]))</span>
+    </div>
+    <div class="card-grid grid-3" style="margin-top:20px">
+      <div class="card card-accent-green">
+        <div class="card-title">≥ 95% — Tiếp tục</div>
+        <div class="card-body">AnalysisRun trả về Successful. Rollout tiếp tục bước tiếp theo.</div>
+      </div>
+      <div class="card card-accent-yellow">
+        <div class="card-title">&lt; 95% × 1-2 lần</div>
+        <div class="card-body">Tăng failure counter. Argo Rollouts pause, chờ thêm dữ liệu.</div>
+      </div>
+      <div class="card card-accent-red">
+        <div class="card-title">&lt; 95% × 3 lần → ABORT</div>
+        <div class="card-body">AnalysisRun = Failed. Rollout tự động abort, traffic về v1.</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="canary-goodbad" class="tab-panel">
+    <div class="diagram-container">
+      <div class="diagram-title">Good Run vs Bad Run</div>
+      <svg id="goodbad-svg" width="100%" height="280" viewBox="0 0 800 280"></svg>
+    </div>
+    <div class="card-grid grid-2">
+      <div class="card card-accent-green">
+        <div class="card-icon">✅</div>
+        <div class="card-title">Good Run — v2 tốt</div>
+        <div class="card-body">
+          <div style="font-family:var(--font-mono);font-size:12px;line-height:2">
+            25% → metrics ≥ 95% ✓<br>
+            50% → metrics ≥ 95% ✓<br>
+            100% → Promoted ✓<br>
+            <span style="color:var(--accent-green)">~20-25 phút. User ít bị ảnh hưởng.</span>
+          </div>
+        </div>
+      </div>
+      <div class="card card-accent-red">
+        <div class="card-icon">❌</div>
+        <div class="card-title">Bad Run — v2 lỗi</div>
+        <div class="card-body">
+          <div style="font-family:var(--font-mono);font-size:12px;line-height:2">
+            25% → metric tụt &lt; 95%<br>
+            × 3 lần → ABORT tự động<br>
+            Rollback &lt; 3 phút<br>
+            <span style="color:var(--accent-red)">Chỉ 25% users bị ảnh hưởng ngắn.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="canary-yaml" class="tab-panel">
+    <div class="code-block">
+<span class="c-key">apiVersion:</span> <span class="c-str">argoproj.io/v1alpha1</span>
+<span class="c-key">kind:</span> <span class="c-str">Rollout</span>   <span class="c-comment"># Thay thế Deployment CRD</span>
+<span class="c-key">metadata:</span>
+  <span class="c-key">name:</span> <span class="c-str">flask-api</span>
+<span class="c-key">spec:</span>
+  <span class="c-key">replicas:</span> <span class="c-num">4</span>
+  <span class="c-key">strategy:</span>
+    <span class="c-key">canary:</span>
+      <span class="c-key">steps:</span>
+      - <span class="c-key">setWeight:</span> <span class="c-num">25</span>
+      - <span class="c-key">pause:</span> {}             <span class="c-comment"># chờ AnalysisTemplate evaluate</span>
+      - <span class="c-key">setWeight:</span> <span class="c-num">50</span>
+      - <span class="c-key">pause:</span> {}
+      - <span class="c-key">setWeight:</span> <span class="c-num">100</span>
+      <span class="c-key">analysis:</span>
+        <span class="c-key">templates:</span>
+        - <span class="c-key">templateName:</span> <span class="c-str">success-rate</span>
+        <span class="c-key">startingStep:</span> <span class="c-num">1</span>  <span class="c-comment"># bắt đầu sau step 1</span>
+  <span class="c-key">selector:</span>
+    <span class="c-key">matchLabels:</span>
+      <span class="c-key">app:</span> <span class="c-str">flask-api</span>
+  <span class="c-key">template:</span>
+    <span class="c-comment"># ... pod spec giống Deployment ...</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ INFRA DEEP DIVE ═══════════════ -->
+<section class="section" id="infra">
+  <div class="section-tag">Infrastructure Deep Dive</div>
+  <h2 class="section-title">Hạ tầng bên dưới</h2>
+  <p class="section-desc">Những gì xảy ra trong Kubernetes khi ArgoCD, Argo Rollouts và Prometheus hoạt động cùng nhau.</p>
+
+  <div class="diagram-container">
+    <div class="diagram-title">K8s Internal Architecture — Full Stack</div>
+    <svg id="infra-svg" width="100%" height="440" viewBox="0 0 900 440"></svg>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('infra','etcd')">etcd & Control Plane</button>
+    <button class="tab-btn" onclick="switchTab('infra','controllers')">Controller Chain</button>
+    <button class="tab-btn" onclick="switchTab('infra','network')">Network & Service Mesh</button>
+    <button class="tab-btn" onclick="switchTab('infra','crd')">CRD Internals</button>
+  </div>
+
+  <div id="infra-etcd" class="tab-panel active">
+    <div class="card-grid grid-2">
+      <div>
+        <div class="card card-accent-blue" style="margin-bottom:16px">
+          <div class="card-icon">🗄️</div>
+          <div class="card-title">etcd — nguồn sự thật của K8s</div>
+          <div class="card-body">Tất cả objects (Pods, Services, Deployments, CRDs) đều được lưu trong etcd dưới dạng key-value. kube-apiserver là gateway duy nhất đọc/ghi etcd. Khi ArgoCD "apply" manifest, thực chất là ghi vào etcd qua apiserver.</div>
+        </div>
+        <div class="card card-accent-orange">
+          <div class="card-icon">📡</div>
+          <div class="card-title">Watch mechanism</div>
+          <div class="card-body">Controllers không poll etcd định kỳ — chúng <strong>watch</strong> (long-poll). Khi etcd thay đổi, apiserver push event đến tất cả watchers. Đây là cơ chế cốt lõi của reconcile loop — <strong>event-driven, không phải polling.</strong></div>
+        </div>
+      </div>
+      <div class="code-block" style="height:fit-content">
+<span class="c-comment"># Khi ArgoCD apply một Deployment:</span>
+<span class="c-comment"># 1. ArgoCD → kubectl apply → apiserver</span>
+<span class="c-comment"># 2. apiserver validate → write etcd</span>
+<span class="c-comment"># 3. etcd → event → ReplicaSet controller</span>
+<span class="c-comment"># 4. RS controller → tạo Pods</span>
+<span class="c-comment"># 5. Scheduler → assign Pods → Nodes</span>
+<span class="c-comment"># 6. kubelet trên Node → pull image → start container</span>
+
+<span class="c-comment"># Khi Argo Rollouts hijack Deployment:</span>
+<span class="c-comment"># Rollouts controller watch Rollout CRD</span>
+<span class="c-comment"># Tạo 2 ReplicaSets: stable + canary</span>
+<span class="c-comment"># Điều chỉnh replicas từng bước</span>
+<span class="c-comment"># Sửa Service selector để route traffic</span>
+
+<span class="c-comment"># etcd path:</span>
+<span class="c-key">/registry/argoproj.io/rollouts/default/flask-api</span>
+<span class="c-key">/registry/apps/replicasets/default/flask-api-stable</span>
+<span class="c-key">/registry/apps/replicasets/default/flask-api-canary</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="infra-controllers" class="tab-panel">
+    <div class="diagram-container">
+      <div class="diagram-title">Controller Chain — Từ Git đến Pod</div>
+      <svg id="controller-chain-svg" width="100%" height="320" viewBox="0 0 860 320"></svg>
+    </div>
+    <div class="callout callout-blue">
+      <span class="callout-icon">🧩</span>
+      <div><strong>Key insight:</strong> Mỗi controller là một infinite loop: Watch → Diff → Act. Chúng không biết về nhau — chỉ care về objects trong etcd. ArgoCD care về Application CRD. Rollouts care về Rollout CRD. K8s core care về built-in objects.</div>
+    </div>
+    <div class="card-grid grid-3" style="margin-top:20px">
+      <div class="card card-accent-orange">
+        <div class="card-title">ArgoCD app-controller</div>
+        <div class="card-body" style="font-family:var(--font-mono);font-size:12px;line-height:1.8">
+          Watch: Application CRD<br>
+          Poll: Git repo (3 min)<br>
+          Compare: Git manifest vs<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; live cluster state<br>
+          Act: kubectl apply delta
+        </div>
+      </div>
+      <div class="card card-accent-purple">
+        <div class="card-title">Argo Rollouts controller</div>
+        <div class="card-body" style="font-family:var(--font-mono);font-size:12px;line-height:1.8">
+          Watch: Rollout CRD<br>
+          Manage: 2 ReplicaSets<br>
+          Route: adjust replicas<br>
+          Integrate: AnalysisRun<br>
+          Act: promote or abort
+        </div>
+      </div>
+      <div class="card card-accent-blue">
+        <div class="card-title">kube-controller-manager</div>
+        <div class="card-body" style="font-family:var(--font-mono);font-size:12px;line-height:1.8">
+          ReplicaSet controller<br>
+          Deployment controller<br>
+          Service controller<br>
+          Node controller<br>
+          (30+ built-in loops)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="infra-network" class="tab-panel">
+    <div class="card-grid grid-2">
+      <div>
+        <div class="card card-accent-teal" style="margin-bottom:16px">
+          <div class="card-icon">🌐</div>
+          <div class="card-title">Canary Traffic Routing</div>
+          <div class="card-body">Argo Rollouts điều chỉnh traffic bằng cách thay đổi <strong>số lượng replicas</strong>, không phải IP rules. setWeight: 25 với 4 replicas = 1 canary pod + 3 stable pods. Traffic được phân phối theo pod count qua kube-proxy/iptables.</div>
+        </div>
+        <div class="card card-accent-blue">
+          <div class="card-icon">🔀</div>
+          <div class="card-title">Service → Pod routing</div>
+          <div class="card-body">Rollouts tạo 2 Services: <code style="font-family:var(--font-mono)">stable-svc</code> và <code style="font-family:var(--font-mono)">canary-svc</code>. Thay đổi selector của main Service để route traffic. Với Istio/Nginx ingress → weight-based routing chính xác hơn.</div>
+        </div>
+      </div>
+      <div class="code-block">
+<span class="c-comment"># Canary weight = 25%, 4 replicas:</span>
+<span class="c-comment"># stable ReplicaSet: 3 pods</span>
+<span class="c-comment"># canary ReplicaSet: 1 pod</span>
+<span class="c-comment"># iptables round-robin → ~25%</span>
+
+<span class="c-comment"># Prometheus scrape flow:</span>
+<span class="c-comment"># prometheus-operator watch ServiceMonitor</span>
+<span class="c-comment"># → update prometheus config</span>
+<span class="c-comment"># → scrape /metrics từ Pod IPs</span>
+<span class="c-comment"># → lưu vào TSDB (time-series DB)</span>
+<span class="c-comment"># → AnalysisTemplate query PromQL</span>
+
+<span class="c-comment"># Service discovery flow:</span>
+<span class="c-key">ServiceMonitor</span> (<span class="c-str">selector: app=flask-api</span>)
+  → <span class="c-key">matches Service</span> (<span class="c-str">flask-api</span>)
+  → <span class="c-key">Endpoints</span> (<span class="c-str">Pod IPs: 10.0.x.x</span>)
+  → <span class="c-key">Prometheus scrape</span> <span class="c-str">http://10.0.x.x/metrics</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="infra-crd" class="tab-panel">
+    <div class="callout callout-blue">
+      <span class="callout-icon">📐</span>
+      <div><strong>CRD = Custom Resource Definition.</strong> K8s cho phép extend API bằng CRD. ArgoCD, Argo Rollouts, Prometheus Operator đều dùng CRD để thêm resource types mới vào K8s API — Application, Rollout, ServiceMonitor, AnalysisTemplate.</div>
+    </div>
+    <table class="compare-table" style="margin-top:16px">
+      <thead>
+        <tr><th>CRD</th><th>Owner</th><th>Stored in etcd</th><th>Managed by</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code style="font-family:var(--font-mono)">Application</code></td>
+          <td>ArgoCD</td>
+          <td><span class="badge badge-green">Yes</span></td>
+          <td>argocd-application-controller</td>
+        </tr>
+        <tr>
+          <td><code style="font-family:var(--font-mono)">Rollout</code></td>
+          <td>Argo Rollouts</td>
+          <td><span class="badge badge-green">Yes</span></td>
+          <td>argo-rollouts-controller</td>
+        </tr>
+        <tr>
+          <td><code style="font-family:var(--font-mono)">AnalysisTemplate</code></td>
+          <td>Argo Rollouts</td>
+          <td><span class="badge badge-green">Yes</span></td>
+          <td>argo-rollouts-controller</td>
+        </tr>
+        <tr>
+          <td><code style="font-family:var(--font-mono)">ServiceMonitor</code></td>
+          <td>Prometheus Operator</td>
+          <td><span class="badge badge-green">Yes</span></td>
+          <td>prometheus-operator</td>
+        </tr>
+        <tr>
+          <td><code style="font-family:var(--font-mono)">AnalysisRun</code></td>
+          <td>Argo Rollouts</td>
+          <td><span class="badge badge-green">Yes</span></td>
+          <td>argo-rollouts-controller (auto-created)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════════ INFRA DEEP DIVE 2 ═══════════════ -->
+<section class="section" id="infra2">
+  <div class="section-tag">Hạ tầng chuyên sâu — 5 sơ đồ</div>
+  <h2 class="section-title">Giải phẫu hệ thống từng tầng</h2>
+  <p class="section-desc">5 sơ đồ độc lập, mỗi cái "mổ xẻ" một lớp: etcd watch loop, request lifecycle, canary traffic split, Prometheus scrape pipeline, và toàn bộ data flow end-to-end.</p>
+
+  <!-- ─── DIAGRAM A: etcd Watch Loop ─── -->
+  <div class="diagram-container">
+    <div class="diagram-title">① etcd Watch Loop — Cơ chế cốt lõi của mọi reconcile</div>
+    <svg id="d-etcd" width="100%" viewBox="0 0 960 500">
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M1 2L8 5L1 8" fill="none" stroke="context-stroke" stroke-width="1.4" stroke-linecap="round"/>
+        </marker>
+      </defs>
+
+      <!-- etcd core box -->
+      <rect x="360" y="30" width="240" height="80" rx="12" fill="#3b8fe808" stroke="#3b8fe844" stroke-width="1.5"/>
+      <text x="480" y="62" text-anchor="middle" font-family="JetBrains Mono" font-size="14" font-weight="700" fill="#3b8fe8">etcd</text>
+      <text x="480" y="82" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#5c7292">key-value store · Raft consensus</text>
+      <text x="480" y="100" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#3b8fe8aa">/registry/&lt;group&gt;/&lt;kind&gt;/&lt;ns&gt;/&lt;name&gt;</text>
+
+      <!-- apiserver -->
+      <rect x="360" y="155" width="240" height="60" rx="10" fill="#9b6fe808" stroke="#9b6fe844" stroke-width="1.5"/>
+      <text x="480" y="181" text-anchor="middle" font-family="JetBrains Mono" font-size="13" font-weight="700" fill="#9b6fe8">kube-apiserver</text>
+      <text x="480" y="200" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">ONLY gateway to etcd · RBAC · admission webhooks</text>
+
+      <!-- arrow etcd ↔ apiserver -->
+      <line x1="480" y1="110" x2="480" y2="153" stroke="#3b8fe8" stroke-width="1.5" marker-end="url(#ah)" marker-start="url(#ah)" opacity="0.6"/>
+      <text x="500" y="134" font-family="JetBrains Mono" font-size="10" fill="#5c7292">watch stream</text>
+
+      <!-- Left controllers -->
+      <rect x="30" y="290" width="170" height="58" rx="8" fill="#e87c3b08" stroke="#e87c3b44" stroke-width="1.2"/>
+      <text x="115" y="315" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#e87c3b">ArgoCD</text>
+      <text x="115" y="333" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">app-controller</text>
+      <text x="115" y="348" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">Watch: Application CRD</text>
+
+      <rect x="30" y="380" width="170" height="58" rx="8" fill="#9b6fe808" stroke="#9b6fe844" stroke-width="1.2"/>
+      <text x="115" y="405" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#9b6fe8">Argo Rollouts</text>
+      <text x="115" y="423" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">Watch: Rollout CRD</text>
+      <text x="115" y="438" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">Manage: 2 ReplicaSets</text>
+
+      <!-- Middle controllers -->
+      <rect x="395" y="285" width="170" height="58" rx="8" fill="#3b8fe808" stroke="#3b8fe844" stroke-width="1.2"/>
+      <text x="480" y="310" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#3b8fe8">ReplicaSet ctrl</text>
+      <text x="480" y="328" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">Watch: ReplicaSet</text>
+      <text x="480" y="343" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">Act: create/delete Pods</text>
+
+      <rect x="395" y="375" width="170" height="58" rx="8" fill="#3b8fe808" stroke="#3b8fe844" stroke-width="1.2"/>
+      <text x="480" y="400" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#3b8fe8">Scheduler</text>
+      <text x="480" y="418" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">Watch: unscheduled Pods</text>
+      <text x="480" y="433" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">Act: assign Node</text>
+
+      <!-- Right -->
+      <rect x="760" y="285" width="170" height="58" rx="8" fill="#3be8c408" stroke="#3be8c444" stroke-width="1.2"/>
+      <text x="845" y="310" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#3be8c4">kubelet</text>
+      <text x="845" y="328" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">Watch: Pods assigned</text>
+      <text x="845" y="343" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">Act: pull image, run CRI</text>
+
+      <rect x="760" y="375" width="170" height="58" rx="8" fill="#00d37f08" stroke="#00d37f44" stroke-width="1.2"/>
+      <text x="845" y="400" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#00d37f">Prom Operator</text>
+      <text x="845" y="418" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">Watch: ServiceMonitor</text>
+      <text x="845" y="433" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">Act: update scrape config</text>
+
+      <!-- apiserver → controllers arrows -->
+      <path d="M400 215 Q200 250 200 288" fill="none" stroke="#e87c3b" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#ah)" opacity="0.7"/>
+      <path d="M400 215 Q200 300 200 378" fill="none" stroke="#9b6fe8" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#ah)" opacity="0.7"/>
+      <line x1="480" y1="215" x2="480" y2="283" stroke="#3b8fe8" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#ah)" opacity="0.7"/>
+      <line x1="480" y1="215" x2="480" y2="373" stroke="#3b8fe8" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#ah)" opacity="0.5"/>
+      <path d="M560 215 Q760 250 760 283" fill="none" stroke="#3be8c4" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#ah)" opacity="0.7"/>
+      <path d="M560 215 Q760 300 760 373" fill="none" stroke="#00d37f" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#ah)" opacity="0.7"/>
+
+      <!-- watch label -->
+      <text x="270" y="255" font-family="JetBrains Mono" font-size="10" fill="#5c7292" text-anchor="middle">WATCH events (push, not poll)</text>
+
+      <!-- reconcile loop labels -->
+      <text x="115" y="460" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#e87c3baa">↻ poll Git 3min</text>
+      <text x="480" y="447" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#3b8fe8aa">↻ infinite loop</text>
+      <text x="845" y="447" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#3be8c4aa">↻ status report</text>
+
+      <!-- border label -->
+      <rect x="10" y="270" width="940" height="220" rx="10" fill="none" stroke="#ffffff0c" stroke-width="1" stroke-dasharray="4,4"/>
+      <text x="30" y="265" font-family="JetBrains Mono" font-size="10" font-weight="700" letter-spacing="0.15em" fill="#ffffff22">CONTROLLERS (mỗi cái là 1 goroutine, watch etcd độc lập)</text>
+    </svg>
+  </div>
+
+  <!-- ─── DIAGRAM B: Request Lifecycle ─── -->
+  <div class="diagram-container" style="margin-top:32px">
+    <div class="diagram-title">② Request Lifecycle — Từ git push đến Pod chạy trong cluster</div>
+    <svg id="d-lifecycle" width="100%" viewBox="0 0 960 360">
+      <defs>
+        <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M1 2L8 5L1 8" fill="none" stroke="context-stroke" stroke-width="1.4" stroke-linecap="round"/>
+        </marker>
+      </defs>
+
+      <!-- Step boxes top row -->
+      <!-- 1 git push -->
+      <rect x="20" y="40" width="130" height="64" rx="9" fill="#00d37f0e" stroke="#00d37f44" stroke-width="1.2"/>
+      <text x="85" y="65" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#00d37f">① git push</text>
+      <text x="85" y="83" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">image: v1→v2</text>
+      <text x="85" y="98" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">GitHub CI validate</text>
+
+      <!-- 2 ArgoCD poll -->
+      <rect x="185" y="40" width="130" height="64" rx="9" fill="#e87c3b0e" stroke="#e87c3b44" stroke-width="1.2"/>
+      <text x="250" y="65" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#e87c3b">② ArgoCD</text>
+      <text x="250" y="83" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">poll 3min</text>
+      <text x="250" y="98" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">detect OutOfSync</text>
+
+      <!-- 3 apply -->
+      <rect x="350" y="40" width="130" height="64" rx="9" fill="#9b6fe80e" stroke="#9b6fe844" stroke-width="1.2"/>
+      <text x="415" y="65" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#9b6fe8">③ apply</text>
+      <text x="415" y="83" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">kubectl apply →</text>
+      <text x="415" y="98" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">apiserver → etcd</text>
+
+      <!-- 4 Rollout ctrl -->
+      <rect x="515" y="40" width="130" height="64" rx="9" fill="#9b6fe80e" stroke="#9b6fe844" stroke-width="1.2"/>
+      <text x="580" y="58" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#9b6fe8">④ Rollouts</text>
+      <text x="580" y="76" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">create canary RS</text>
+      <text x="580" y="91" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">setWeight 25%</text>
+      <text x="580" y="99" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#5c7292">adjust replicas</text>
+
+      <!-- 5 Scheduler -->
+      <rect x="680" y="40" width="130" height="64" rx="9" fill="#3b8fe80e" stroke="#3b8fe844" stroke-width="1.2"/>
+      <text x="745" y="65" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#3b8fe8">⑤ Scheduler</text>
+      <text x="745" y="83" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">assign Pod</text>
+      <text x="745" y="98" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">to best Node</text>
+
+      <!-- 6 kubelet -->
+      <rect x="845" y="40" width="100" height="64" rx="9" fill="#3be8c40e" stroke="#3be8c444" stroke-width="1.2"/>
+      <text x="895" y="65" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#3be8c4">⑥ kubelet</text>
+      <text x="895" y="83" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">pull image</text>
+      <text x="895" y="98" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">start container</text>
+
+      <!-- arrows top -->
+      <line x1="151" y1="72" x2="183" y2="72" stroke="#00d37f" stroke-width="1.3" marker-end="url(#ah2)" opacity="0.7"/>
+      <line x1="316" y1="72" x2="348" y2="72" stroke="#e87c3b" stroke-width="1.3" marker-end="url(#ah2)" opacity="0.7"/>
+      <line x1="481" y1="72" x2="513" y2="72" stroke="#9b6fe8" stroke-width="1.3" marker-end="url(#ah2)" opacity="0.7"/>
+      <line x1="646" y1="72" x2="678" y2="72" stroke="#9b6fe8" stroke-width="1.3" marker-end="url(#ah2)" opacity="0.7"/>
+      <line x1="811" y1="72" x2="843" y2="72" stroke="#3b8fe8" stroke-width="1.3" marker-end="url(#ah2)" opacity="0.7"/>
+
+      <!-- etcd central store row -->
+      <rect x="300" y="155" width="360" height="52" rx="10" fill="#3b8fe80a" stroke="#3b8fe833" stroke-width="1.5"/>
+      <text x="480" y="177" text-anchor="middle" font-family="JetBrains Mono" font-size="13" font-weight="700" fill="#3b8fe8">kube-apiserver + etcd</text>
+      <text x="480" y="196" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">source of truth · all objects stored here · watch streams out</text>
+
+      <!-- arrows down to etcd -->
+      <line x1="415" y1="105" x2="415" y2="153" stroke="#9b6fe8" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#ah2)" opacity="0.5"/>
+      <line x1="480" y1="155" x2="480" y2="107" stroke="#3b8fe8" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#ah2)" opacity="0.5"/>
+      <line x1="580" y1="105" x2="530" y2="153" stroke="#9b6fe8" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#ah2)" opacity="0.5"/>
+      <line x1="745" y1="105" x2="620" y2="153" stroke="#3b8fe8" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#ah2)" opacity="0.5"/>
+
+      <!-- Second row: Prometheus + AnalysisRun -->
+      <rect x="20" y="245" width="200" height="58" rx="9" fill="#e84b4b0e" stroke="#e84b4b44" stroke-width="1.2"/>
+      <text x="120" y="268" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#e84b4b">Prometheus</text>
+      <text x="120" y="286" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">scrape /metrics từ canary pods</text>
+      <text x="120" y="300" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">lưu time-series TSDB</text>
+
+      <rect x="260" y="245" width="200" height="58" rx="9" fill="#e8c33b0e" stroke="#e8c33b44" stroke-width="1.2"/>
+      <text x="360" y="268" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#e8c33b">AnalysisRun</text>
+      <text x="360" y="286" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">query PromQL mỗi 30s</text>
+      <text x="360" y="300" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">success ≥ 0.95 → pass</text>
+
+      <rect x="500" y="245" width="200" height="58" rx="9" fill="#00d37f0e" stroke="#00d37f44" stroke-width="1.2"/>
+      <text x="600" y="268" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#00d37f">Promoted ✓</text>
+      <text x="600" y="286" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">100% → v2</text>
+      <text x="600" y="300" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">stable RS updated</text>
+
+      <rect x="740" y="245" width="200" height="58" rx="9" fill="#e84b4b0e" stroke="#e84b4b44" stroke-width="1.2"/>
+      <text x="840" y="268" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#e84b4b">ABORT ✗</text>
+      <text x="840" y="286" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">fail × 3 → rollback</text>
+      <text x="840" y="300" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">canary RS → 0</text>
+
+      <!-- arrows bottom row -->
+      <line x1="580" y1="105" x2="120" y2="243" stroke="#e84b4b" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#ah2)" opacity="0.4"/>
+      <line x1="221" y1="274" x2="258" y2="274" stroke="#e84b4b" stroke-width="1.3" marker-end="url(#ah2)" opacity="0.7"/>
+      <line x1="461" y1="274" x2="498" y2="274" stroke="#00d37f" stroke-width="1.3" marker-end="url(#ah2)" opacity="0.7"/>
+      <path d="M461 284 Q600 320 738 284" fill="none" stroke="#e84b4b" stroke-width="1.3" marker-end="url(#ah2)" stroke-dasharray="4,3" opacity="0.6"/>
+      <text x="600" y="338" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#e84b4b88">nếu fail × 3</text>
+
+      <text x="333" y="340" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#00d37f88">nếu pass</text>
+    </svg>
+  </div>
+
+  <!-- ─── DIAGRAM C: Canary Traffic Split Anatomy ─── -->
+  <div class="diagram-container" style="margin-top:32px">
+    <div class="diagram-title">③ Canary Traffic Split — Argo Rollouts quản lý 2 ReplicaSet trong cluster</div>
+    <svg id="d-canary-infra" width="100%" viewBox="0 0 960 420">
+      <defs>
+        <marker id="ah3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M1 2L8 5L1 8" fill="none" stroke="context-stroke" stroke-width="1.4" stroke-linecap="round"/>
+        </marker>
+      </defs>
+
+      <!-- Namespace container -->
+      <rect x="10" y="10" width="940" height="400" rx="14" fill="none" stroke="#ffffff0c" stroke-width="1.5" stroke-dasharray="6,4"/>
+      <text x="30" y="30" font-family="JetBrains Mono" font-size="10" font-weight="700" letter-spacing="0.18em" fill="#ffffff1a">KUBERNETES NAMESPACE: default</text>
+
+      <!-- Service (main) -->
+      <rect x="390" y="45" width="180" height="58" rx="10" fill="#3b8fe80e" stroke="#3b8fe855" stroke-width="1.5"/>
+      <text x="480" y="68" text-anchor="middle" font-family="JetBrains Mono" font-size="13" font-weight="700" fill="#3b8fe8">Service</text>
+      <text x="480" y="86" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">flask-api · ClusterIP</text>
+      <text x="480" y="98" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#3b8fe888">selector: app=flask-api</text>
+
+      <!-- Ingress -->
+      <rect x="390" y="340" width="180" height="50" rx="9" fill="#9b6fe80e" stroke="#9b6fe844" stroke-width="1.2"/>
+      <text x="480" y="363" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#9b6fe8">Ingress</text>
+      <text x="480" y="381" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">external traffic → Service</text>
+      <line x1="480" y1="340" x2="480" y2="104" stroke="#9b6fe8" stroke-width="1.3" marker-end="url(#ah3)" opacity="0.5"/>
+
+      <!-- Stable ReplicaSet -->
+      <rect x="100" y="155" width="300" height="155" rx="10" fill="#00d37f08" stroke="#00d37f33" stroke-width="1.2"/>
+      <text x="250" y="178" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#00d37f">ReplicaSet — stable (v1)</text>
+      <text x="250" y="195" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">75% traffic · 3 replicas</text>
+      <!-- pods -->
+      <rect x="120" y="208" width="72" height="36" rx="6" fill="#00d37f18" stroke="#00d37f44" stroke-width="1"/>
+      <text x="156" y="221" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#00d37f">Pod v1</text>
+      <text x="156" y="236" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#5c7292">Running</text>
+      <rect x="214" y="208" width="72" height="36" rx="6" fill="#00d37f18" stroke="#00d37f44" stroke-width="1"/>
+      <text x="250" y="221" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#00d37f">Pod v1</text>
+      <text x="250" y="236" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#5c7292">Running</text>
+      <rect x="308" y="208" width="72" height="36" rx="6" fill="#00d37f18" stroke="#00d37f44" stroke-width="1"/>
+      <text x="344" y="221" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#00d37f">Pod v1</text>
+      <text x="344" y="236" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#5c7292">Running</text>
+      <!-- kube-proxy label -->
+      <text x="250" y="270" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#00d37f88">kube-proxy iptables rules</text>
+      <text x="250" y="284" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">→ round-robin 3 pods</text>
+      <text x="250" y="298" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#00d37f">= ~75% traffic</text>
+
+      <!-- Canary ReplicaSet -->
+      <rect x="560" y="155" width="300" height="155" rx="10" fill="#e87c3b08" stroke="#e87c3b33" stroke-width="1.2"/>
+      <text x="710" y="178" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#e87c3b">ReplicaSet — canary (v2)</text>
+      <text x="710" y="195" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">25% traffic · 1 replica</text>
+      <!-- pod -->
+      <rect x="664" y="208" width="92" height="36" rx="6" fill="#e87c3b18" stroke="#e87c3b44" stroke-width="1"/>
+      <text x="710" y="221" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#e87c3b">Pod v2 (canary)</text>
+      <text x="710" y="236" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#5c7292">Running · /metrics</text>
+      <text x="710" y="270" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#e87c3b88">1 pod của 4 tổng</text>
+      <text x="710" y="284" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">→ ~25% traffic nhận</text>
+      <text x="710" y="298" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#e87c3b">Prometheus đang scrape</text>
+
+      <!-- arrows Service → ReplicaSets -->
+      <path d="M420 104 Q300 128 250 153" fill="none" stroke="#3b8fe8" stroke-width="1.5" marker-end="url(#ah3)" opacity="0.6"/>
+      <path d="M540 104 Q660 128 710 153" fill="none" stroke="#3b8fe8" stroke-width="1.5" marker-end="url(#ah3)" opacity="0.6"/>
+      <text x="480" y="130" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#3b8fe8aa">selector match → Endpoints</text>
+
+      <!-- Argo Rollouts controller -->
+      <rect x="390" y="155" width="180" height="80" rx="9" fill="#9b6fe80e" stroke="#9b6fe855" stroke-width="1.5"/>
+      <text x="480" y="178" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#9b6fe8">Argo Rollouts</text>
+      <text x="480" y="195" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">controller</text>
+      <text x="480" y="212" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#5c7292">điều chỉnh replicas</text>
+      <text x="480" y="226" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#9b6fe8">stable:3 / canary:1</text>
+      <line x1="480" y1="235" x2="250" y2="265" stroke="#9b6fe8" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#ah3)" opacity="0.5"/>
+      <line x1="480" y1="235" x2="710" y2="265" stroke="#9b6fe8" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#ah3)" opacity="0.5"/>
+    </svg>
+  </div>
+
+  <!-- ─── DIAGRAM D: Prometheus Scrape Pipeline ─── -->
+  <div class="diagram-container" style="margin-top:32px">
+    <div class="diagram-title">④ Prometheus Scrape Pipeline — Từ Pod /metrics đến AnalysisTemplate decision</div>
+    <svg id="d-prom" width="100%" viewBox="0 0 960 380">
+      <defs>
+        <marker id="ah4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M1 2L8 5L1 8" fill="none" stroke="context-stroke" stroke-width="1.4" stroke-linecap="round"/>
+        </marker>
+      </defs>
+
+      <!-- Pod /metrics -->
+      <rect x="20" y="60" width="150" height="70" rx="9" fill="#e87c3b0e" stroke="#e87c3b44" stroke-width="1.2"/>
+      <text x="95" y="85" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#e87c3b">Pod (Flask)</text>
+      <text x="95" y="103" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">GET /metrics</text>
+      <text x="95" y="120" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">flask_http_request_total</text>
+
+      <!-- ServiceMonitor CRD -->
+      <rect x="220" y="40" width="160" height="110" rx="9" fill="#3be8c40e" stroke="#3be8c444" stroke-width="1.2"/>
+      <text x="300" y="65" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#3be8c4">ServiceMonitor</text>
+      <text x="300" y="83" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">CRD (monitoring.coreos)</text>
+      <text x="300" y="101" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">selector: app=flask-api</text>
+      <text x="300" y="118" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">port: http · /metrics</text>
+      <text x="300" y="134" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#3be8c488">interval: 15s</text>
+
+      <!-- Prometheus Operator -->
+      <rect x="430" y="40" width="160" height="110" rx="9" fill="#00d37f0e" stroke="#00d37f44" stroke-width="1.2"/>
+      <text x="510" y="65" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#00d37f">Prom Operator</text>
+      <text x="510" y="83" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">watch ServiceMonitor</text>
+      <text x="510" y="101" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">→ generate</text>
+      <text x="510" y="118" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">prometheus.yml</text>
+      <text x="510" y="134" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#00d37f88">reload config</text>
+
+      <!-- Prometheus TSDB -->
+      <rect x="640" y="40" width="150" height="110" rx="9" fill="#e84b4b0e" stroke="#e84b4b44" stroke-width="1.2"/>
+      <text x="715" y="65" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#e84b4b">Prometheus</text>
+      <text x="715" y="83" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">scrape every 15s</text>
+      <text x="715" y="101" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">TSDB on disk</text>
+      <text x="715" y="118" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">retention: 15d default</text>
+      <text x="715" y="134" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#e84b4b88">HTTP API :9090</text>
+
+      <!-- Grafana -->
+      <rect x="840" y="40" width="105" height="110" rx="9" fill="#e87c3b0e" stroke="#e87c3b44" stroke-width="1.2"/>
+      <text x="892" y="72" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#e87c3b">Grafana</text>
+      <text x="892" y="90" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">dashboard</text>
+      <text x="892" y="108" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">alert rules</text>
+      <text x="892" y="126" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#e87c3b88">burn rate viz</text>
+
+      <!-- arrows top row -->
+      <line x1="170" y1="95" x2="218" y2="95" stroke="#e87c3b" stroke-width="1.3" marker-end="url(#ah4)" opacity="0.7"/>
+      <text x="195" y="88" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#5c7292">expose</text>
+      <line x1="381" y1="95" x2="428" y2="95" stroke="#3be8c4" stroke-width="1.3" marker-end="url(#ah4)" opacity="0.7"/>
+      <text x="405" y="88" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#5c7292">watch CRD</text>
+      <line x1="591" y1="95" x2="638" y2="95" stroke="#00d37f" stroke-width="1.3" marker-end="url(#ah4)" opacity="0.7"/>
+      <text x="615" y="88" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#5c7292">scrape</text>
+      <line x1="791" y1="95" x2="838" y2="95" stroke="#e84b4b" stroke-width="1.3" marker-end="url(#ah4)" opacity="0.7"/>
+      <text x="815" y="88" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#5c7292">query</text>
+
+      <!-- Prometheus scrape back to Pod -->
+      <path d="M715 150 Q715 185 95 185 Q95 190 95 132" fill="none" stroke="#e84b4b" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#ah4)" opacity="0.4"/>
+      <text x="400" y="200" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#e84b4b66">Prometheus pull /metrics từ Pod IP trực tiếp mỗi 15s</text>
+
+      <!-- AnalysisTemplate -->
+      <rect x="20" y="250" width="260" height="100" rx="9" fill="#e8c33b0e" stroke="#e8c33b44" stroke-width="1.2"/>
+      <text x="150" y="275" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#e8c33b">AnalysisTemplate</text>
+      <text x="150" y="293" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">query Prometheus mỗi 30s:</text>
+      <text x="150" y="311" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#e8c33b">sum(rate(req{2xx}[2m])) /</text>
+      <text x="150" y="327" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#e8c33b">sum(rate(req[2m]))</text>
+      <text x="150" y="344" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">failureLimit: 3</text>
+
+      <!-- Decision -->
+      <rect x="330" y="250" width="180" height="100" rx="9" fill="#9b6fe80e" stroke="#9b6fe844" stroke-width="1.2"/>
+      <text x="420" y="278" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#9b6fe8">Ngưỡng xét</text>
+      <text x="420" y="298" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#00d37f">≥ 0.95 → PASS</text>
+      <text x="420" y="318" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#e84b4b">&lt; 0.95 → FAIL</text>
+      <text x="420" y="338" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">fail × 3 → ABORT</text>
+
+      <!-- Promote / Abort -->
+      <rect x="560" y="250" width="160" height="44" rx="8" fill="#00d37f0e" stroke="#00d37f44" stroke-width="1.2"/>
+      <text x="640" y="268" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#00d37f">PROMOTE →100%</text>
+      <text x="640" y="285" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">canary RS becomes stable</text>
+
+      <rect x="560" y="306" width="160" height="44" rx="8" fill="#e84b4b0e" stroke="#e84b4b44" stroke-width="1.2"/>
+      <text x="640" y="324" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#e84b4b">ABORT →0%</text>
+      <text x="640" y="341" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">canary RS scale to 0</text>
+
+      <!-- arrows bottom -->
+      <path d="M715 152 Q715 220 283 275" fill="none" stroke="#e84b4b" stroke-width="1.3" marker-end="url(#ah4)" opacity="0.6"/>
+      <text x="550" y="235" font-family="JetBrains Mono" font-size="10" fill="#e84b4b88">PromQL query</text>
+      <line x1="281" y1="300" x2="328" y2="300" stroke="#e8c33b" stroke-width="1.3" marker-end="url(#ah4)" opacity="0.7"/>
+      <line x1="511" y1="272" x2="558" y2="272" stroke="#00d37f" stroke-width="1.3" marker-end="url(#ah4)" opacity="0.7"/>
+      <line x1="511" y1="328" x2="558" y2="328" stroke="#e84b4b" stroke-width="1.3" marker-end="url(#ah4)" opacity="0.7"/>
+    </svg>
+  </div>
+
+  <!-- ─── DIAGRAM E: Full End-to-End Data Flow ─── -->
+  <div class="diagram-container" style="margin-top:32px">
+    <div class="diagram-title">⑤ End-to-End Data Flow — Toàn bộ pipeline W9 trong 1 sơ đồ</div>
+    <svg id="d-e2e" width="100%" viewBox="0 0 960 540">
+      <defs>
+        <marker id="ah5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M1 2L8 5L1 8" fill="none" stroke="context-stroke" stroke-width="1.4" stroke-linecap="round"/>
+        </marker>
+      </defs>
+
+      <!-- Layer labels left side -->
+      <text x="8" y="80" font-family="JetBrains Mono" font-size="9" font-weight="700" letter-spacing="0.1em" fill="#ffffff22" transform="rotate(-90,8,80)">GIT</text>
+      <text x="8" y="200" font-family="JetBrains Mono" font-size="9" font-weight="700" letter-spacing="0.1em" fill="#ffffff22" transform="rotate(-90,8,200)">CONTROL</text>
+      <text x="8" y="360" font-family="JetBrains Mono" font-size="9" font-weight="700" letter-spacing="0.1em" fill="#ffffff22" transform="rotate(-90,8,360)">RUNTIME</text>
+      <text x="8" y="490" font-family="JetBrains Mono" font-size="9" font-weight="700" letter-spacing="0.1em" fill="#ffffff22" transform="rotate(-90,8,490)">OBSERVE</text>
+
+      <!-- Layer bands -->
+      <rect x="22" y="20" width="930" height="90" rx="8" fill="#00d37f04" stroke="#00d37f1a" stroke-width="0.8"/>
+      <rect x="22" y="128" width="930" height="130" rx="8" fill="#9b6fe804" stroke="#9b6fe81a" stroke-width="0.8"/>
+      <rect x="22" y="276" width="930" height="130" rx="8" fill="#3b8fe804" stroke="#3b8fe81a" stroke-width="0.8"/>
+      <rect x="22" y="424" width="930" height="100" rx="8" fill="#e84b4b04" stroke="#e84b4b1a" stroke-width="0.8"/>
+
+      <!-- GIT LAYER -->
+      <rect x="50" y="38" width="120" height="56" rx="8" fill="#00d37f12" stroke="#00d37f44" stroke-width="1.2"/>
+      <text x="110" y="62" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#00d37f">Developer</text>
+      <text x="110" y="80" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">git commit</text>
+
+      <rect x="220" y="38" width="130" height="56" rx="8" fill="#3b8fe812" stroke="#3b8fe844" stroke-width="1.2"/>
+      <text x="285" y="62" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#3b8fe8">GitHub CI</text>
+      <text x="285" y="80" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">kubeconform</text>
+
+      <rect x="405" y="38" width="130" height="56" rx="8" fill="#00d37f12" stroke="#00d37f55" stroke-width="1.5"/>
+      <text x="470" y="62" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#00d37f">Git repo</text>
+      <text x="470" y="80" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#00d37f88">source of truth</text>
+
+      <!-- git arrows -->
+      <line x1="171" y1="66" x2="218" y2="66" stroke="#00d37f" stroke-width="1.3" marker-end="url(#ah5)" opacity="0.7"/>
+      <line x1="351" y1="66" x2="403" y2="66" stroke="#3b8fe8" stroke-width="1.3" marker-end="url(#ah5)" opacity="0.7"/>
+
+      <!-- CONTROL LAYER -->
+      <rect x="380" y="148" width="200" height="88" rx="10" fill="#e87c3b12" stroke="#e87c3b55" stroke-width="1.5"/>
+      <text x="480" y="172" text-anchor="middle" font-family="JetBrains Mono" font-size="13" font-weight="700" fill="#e87c3b">ArgoCD</text>
+      <text x="480" y="190" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">① Poll Git 3min</text>
+      <text x="480" y="207" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">② Compare desired/actual</text>
+      <text x="480" y="224" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#e87c3b88">③ Apply if OutOfSync</text>
+
+      <rect x="170" y="160" width="140" height="62" rx="8" fill="#e84b4b08" stroke="#e84b4b33" stroke-width="1"/>
+      <text x="240" y="185" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#e84b4b">selfHeal</text>
+      <text x="240" y="203" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">drift → re-apply</text>
+      <text x="240" y="218" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#e84b4b88">3min loop</text>
+
+      <rect x="660" y="160" width="140" height="62" rx="8" fill="#e8c33b08" stroke="#e8c33b33" stroke-width="1"/>
+      <text x="730" y="185" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#e8c33b">Sync Waves</text>
+      <text x="730" y="203" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">NS→CM→Deploy</text>
+      <text x="730" y="218" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#e8c33b88">→Svc ordering</text>
+
+      <!-- Git → ArgoCD -->
+      <line x1="470" y1="94" x2="470" y2="146" stroke="#00d37f" stroke-width="1.3" marker-end="url(#ah5)" opacity="0.7"/>
+      <line x1="380" y1="192" x2="311" y2="192" stroke="#e84b4b" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#ah5)" opacity="0.5"/>
+      <line x1="581" y1="192" x2="658" y2="192" stroke="#e8c33b" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#ah5)" opacity="0.5"/>
+
+      <!-- RUNTIME LAYER -->
+      <rect x="200" y="295" width="220" height="88" rx="10" fill="#9b6fe812" stroke="#9b6fe855" stroke-width="1.5"/>
+      <text x="310" y="318" text-anchor="middle" font-family="JetBrains Mono" font-size="13" font-weight="700" fill="#9b6fe8">Argo Rollouts</text>
+      <text x="310" y="336" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">Canary step-by-step</text>
+      <text x="310" y="353" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">stable RS · canary RS</text>
+      <text x="310" y="370" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#9b6fe888">abort if fail</text>
+
+      <rect x="540" y="295" width="300" height="88" rx="10" fill="#3b8fe812" stroke="#3b8fe855" stroke-width="1.5"/>
+      <text x="690" y="318" text-anchor="middle" font-family="JetBrains Mono" font-size="13" font-weight="700" fill="#3b8fe8">Kubernetes Cluster</text>
+      <text x="690" y="336" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">Pods · ReplicaSet · Service</text>
+      <text x="690" y="353" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">Namespace · Endpoints</text>
+      <text x="690" y="370" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#3b8fe888">kube-proxy iptables</text>
+
+      <!-- ArgoCD → Runtime -->
+      <line x1="480" y1="236" x2="420" y2="293" stroke="#e87c3b" stroke-width="1.3" marker-end="url(#ah5)" opacity="0.6"/>
+      <line x1="480" y1="236" x2="600" y2="293" stroke="#e87c3b" stroke-width="1.3" marker-end="url(#ah5)" opacity="0.6"/>
+      <line x1="421" y1="339" x2="538" y2="339" stroke="#9b6fe8" stroke-width="1.3" marker-end="url(#ah5)" opacity="0.6"/>
+
+      <!-- OBSERVE LAYER -->
+      <rect x="50" y="442" width="160" height="62" rx="8" fill="#e84b4b0e" stroke="#e84b4b44" stroke-width="1.2"/>
+      <text x="130" y="466" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#e84b4b">Prometheus</text>
+      <text x="130" y="484" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">scrape /metrics 15s</text>
+      <text x="130" y="498" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#e84b4b88">TSDB</text>
+
+      <rect x="260" y="442" width="160" height="62" rx="8" fill="#3be8c40e" stroke="#3be8c444" stroke-width="1.2"/>
+      <text x="340" y="466" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#3be8c4">ServiceMonitor</text>
+      <text x="340" y="484" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">khai báo scrape</text>
+      <text x="340" y="498" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#3be8c488">port: http /metrics</text>
+
+      <rect x="470" y="442" width="170" height="62" rx="8" fill="#e8c33b0e" stroke="#e8c33b44" stroke-width="1.2"/>
+      <text x="555" y="466" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#e8c33b">AnalysisTemplate</text>
+      <text x="555" y="484" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">query Prometheus</text>
+      <text x="555" y="498" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#e8c33b88">&lt;95%×3 → ABORT</text>
+
+      <rect x="690" y="442" width="160" height="62" rx="8" fill="#e87c3b0e" stroke="#e87c3b44" stroke-width="1.2"/>
+      <text x="770" y="466" text-anchor="middle" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#e87c3b">Grafana</text>
+      <text x="770" y="484" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5c7292">dashboard + alert</text>
+      <text x="770" y="498" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#e87c3b88">burn rate panels</text>
+
+      <!-- Cluster → Observe -->
+      <line x1="600" y1="383" x2="130" y2="440" stroke="#e84b4b" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#ah5)" opacity="0.5"/>
+      <line x1="600" y1="383" x2="340" y2="440" stroke="#3be8c4" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#ah5)" opacity="0.5"/>
+      <line x1="690" y1="383" x2="770" y2="440" stroke="#e87c3b" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#ah5)" opacity="0.5"/>
+
+      <!-- AnalysisTemplate → Rollouts feedback -->
+      <path d="M555 442 Q555 420 420 410 Q310 400 310 385" fill="none" stroke="#e8c33b" stroke-width="1.3" stroke-dasharray="5,3" marker-end="url(#ah5)" opacity="0.65"/>
+      <text x="430" y="415" font-family="JetBrains Mono" font-size="9" fill="#e8c33b88">abort if fail × 3</text>
+
+      <!-- Prometheus → AnalysisTemplate -->
+      <line x1="211" y1="473" x2="258" y2="473" stroke="#e84b4b" stroke-width="1.2" marker-end="url(#ah5)" opacity="0.6"/>
+      <line x1="421" y1="473" x2="468" y2="473" stroke="#3be8c4" stroke-width="1.2" marker-end="url(#ah5)" opacity="0.6"/>
+      <line x1="641" y1="473" x2="688" y2="473" stroke="#e8c33b" stroke-width="1.2" marker-end="url(#ah5)" opacity="0.6"/>
+    </svg>
+  </div>
+
+  <!-- Summary cards -->
+  <div class="card-grid grid-3" style="margin-top:32px">
+    <div class="card card-accent-blue">
+      <div class="card-title">etcd: nguồn sự thật duy nhất</div>
+      <div class="card-body">Mọi object K8s đều tồn tại trong etcd. Controller không giao tiếp trực tiếp với nhau — chúng chỉ đọc/ghi etcd qua apiserver. Đây là lý do hệ thống scale được: thêm controller mới không cần sửa code controller cũ.</div>
+    </div>
+    <div class="card card-accent-orange">
+      <div class="card-title">Watch &gt; Poll: event-driven</div>
+      <div class="card-body">Controller không poll định kỳ như cron job. Chúng dùng HTTP/2 long-lived watch stream — etcd push event ngay khi có thay đổi. Latency từ "git push" đến Pod chạy thường &lt; 30s (không tính pull image).</div>
+    </div>
+    <div class="card card-accent-purple">
+      <div class="card-title">CRD: K8s extensibility</div>
+      <div class="card-body">ArgoCD, Rollouts, Prometheus Operator đều dùng CRD để thêm resource types mới. K8s lưu chúng vào etcd y hệt built-in objects. Controller của từng tool watch CRD của nó — không phụ thuộc K8s core.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ PITFALLS ═══════════════ -->
+<section class="section" id="pitfalls">
+  <div class="section-tag">Common Pitfalls</div>
+  <h2 class="section-title">Lỗi hay gặp & cách xử lý đúng</h2>
+  <p class="section-desc">Những bẫy kinh điển mà engineer mới gặp khi làm việc với GitOps pipeline.</p>
+
+  <div class="timeline" style="margin-bottom:40px">
+    <div class="tl-item">
+      <div class="tl-dot" style="background:var(--accent-red)"></div>
+      <div class="tl-time">Lỗi #1</div>
+      <div class="tl-title">kubectl apply tay → selfHeal ghi đè</div>
+      <div class="tl-desc">Bất kỳ thay đổi không qua Git đều bị ArgoCD revert trong vòng 3 phút. <strong>Fix:</strong> Luôn thêm file vào Git rồi push. Dùng <code style="font-family:var(--font-mono)">argocd app diff</code> để kiểm tra trước khi sync.</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot" style="background:var(--accent-red)"></div>
+      <div class="tl-time">Lỗi #2</div>
+      <div class="tl-title">Canary không có AnalysisTemplate → người phải canh</div>
+      <div class="tl-desc">Thiếu AnalysisTemplate → pause: {} chờ mãi mãi hoặc phải promote thủ công. <strong>Fix:</strong> Luôn gắn AnalysisTemplate với Rollout spec. Nếu chưa có Prometheus, dùng web metric hoặc job provider.</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot" style="background:var(--accent-red)"></div>
+      <div class="tl-time">Lỗi #3</div>
+      <div class="tl-title">Thiếu sync-wave → Deployment trước ConfigMap → crash</div>
+      <div class="tl-desc">Kubernetes apply tất cả resources song song nếu không khai báo wave. <strong>Fix:</strong> Annotation <code style="font-family:var(--font-mono)">argocd.argoproj.io/sync-wave</code> theo thứ tự: 0=NS, 1=CM/Secret, 2=Deploy, 3=Svc, 4=Ingress.</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot" style="background:var(--accent-yellow)"></div>
+      <div class="tl-time">Lỗi #4</div>
+      <div class="tl-title">SLI = CPU usage → không đo user experience</div>
+      <div class="tl-desc">CPU thấp không đồng nghĩa users hài lòng. <strong>Fix:</strong> SLI phải đo từ user perspective: request success rate, latency p99. Dùng <code style="font-family:var(--font-mono)">flask_http_request_total</code> thay vì <code style="font-family:var(--font-mono)">container_cpu_usage_seconds</code>.</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot" style="background:var(--accent-yellow)"></div>
+      <div class="tl-time">Lỗi #5</div>
+      <div class="tl-title">Rollout CRD không trong Git → ArgoCD không biết</div>
+      <div class="tl-desc">Nếu Rollout.yaml không được commit vào k8s-api repo, ArgoCD sẽ không deploy nó. <strong>Fix:</strong> Cấu trúc repo rõ ràng: <code style="font-family:var(--font-mono)">k8s-api/apps/flask-api/rollout.yaml</code> phải tồn tại trong Git.</div>
+    </div>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title">Integration Checklist — 3 điểm tích hợp then chốt</div>
+    <svg id="checklist-svg" width="100%" height="200" viewBox="0 0 800 200"></svg>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <span>W9 // GitOps · Observability · Progressive Delivery</span>
+  <span>ArgoCD + Argo Rollouts + Prometheus + Grafana</span>
+</footer>
+
+<!-- ═══════════════ D3 DIAGRAMS ═══════════════ -->
+<script>
+// ─── Utils ───
+const $ = id => document.getElementById(id);
+
+function switchTab(group, tab) {
+  document.querySelectorAll(`[id^="${group}-"]`).forEach(el => {
+    el.classList.remove('active');
+    const btn = document.querySelector(`[onclick="switchTab('${group}','${el.id.replace(group+'-','')}')"]`);
+    if (btn) btn.classList.remove('active');
+  });
+  $(`${group}-${tab}`).classList.add('active');
+  document.querySelector(`[onclick="switchTab('${group}','${tab}')"]`).classList.add('active');
+}
+
+// Progress bar
+window.addEventListener('scroll', () => {
+  const total = document.body.scrollHeight - window.innerHeight;
+  $('progress-fill').style.width = (window.scrollY / total * 100) + '%';
+});
+
+// Nav active state
+const sections = document.querySelectorAll('section[id]');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => { if (window.scrollY >= s.offsetTop - 80) current = s.id; });
+  document.querySelectorAll('.nav-link').forEach(l => {
+    l.classList.toggle('active', l.getAttribute('href') === '#'+current);
+  });
+});
+
+// ─── COLOR PALETTE ───
+const C = {
+  bg0: '#0a0d12', bg1: '#0f1318', bg2: '#151a22', bg3: '#1c2330',
+  border: '#ffffff14', borderHi: '#ffffff28',
+  t0: '#e8edf5', t1: '#9aaec4', t2: '#5c7292',
+  green: '#00d37f', blue: '#3b8fe8', orange: '#e87c3b',
+  purple: '#9b6fe8', red: '#e84b4b', teal: '#3be8c4', yellow: '#e8c33b'
+};
+
+function node(svg, x, y, w, h, color, title, sub, rx=8) {
+  const g = svg.append('g');
+  g.append('rect').attr('x', x-w/2).attr('y', y-h/2).attr('width', w).attr('height', h)
+   .attr('rx', rx).attr('fill', color+'22').attr('stroke', color+'77').attr('stroke-width', 1.5);
+  g.append('text').attr('x', x).attr('y', sub ? y-6 : y+5)
+   .attr('text-anchor', 'middle').attr('fill', color)
+   .attr('font-size', 12).attr('font-weight', 700).text(title);
+  if (sub) g.append('text').attr('x', x).attr('y', y+12)
+   .attr('text-anchor', 'middle').attr('fill', C.t2).attr('font-size', 10).text(sub);
+  return g;
+}
+
+function arrow(svg, x1, y1, x2, y2, color=C.t2) {
+  const dx = x2-x1, dy = y2-y1, len = Math.sqrt(dx*dx+dy*dy);
+  const ux = dx/len, uy = dy/len;
+  svg.append('line')
+   .attr('x1', x1).attr('y1', y1).attr('x2', x2-ux*6).attr('y2', y2-uy*6)
+   .attr('stroke', color).attr('stroke-width', 1.5).attr('opacity', 0.6);
+  svg.append('polygon')
+   .attr('points', `0,-5 4,5 -4,5`).attr('fill', color).attr('opacity', 0.8)
+   .attr('transform', `translate(${x2},${y2}) rotate(${Math.atan2(dy,dx)*180/Math.PI+90})`);
+}
+
+function label(svg, x, y, text, color=C.t2, size=10) {
+  svg.append('text').attr('x', x).attr('y', y).attr('text-anchor', 'middle')
+   .attr('fill', color).attr('font-size', size).attr('font-family', 'JetBrains Mono').text(text);
+}
+
+// ═══ DIAGRAM 1: Three Reconcile Loops ═══
+(function() {
+  const svg = d3.select('#reconcile-svg');
+
+  // Outer loop label
+  svg.append('rect').attr('x',20).attr('y',30).attr('width',860).attr('height',320)
+     .attr('rx',14).attr('fill','none').attr('stroke',C.green+'33').attr('stroke-width',1.5).attr('stroke-dasharray','6,4');
+  label(svg, 90, 22, 'Git (outermost)', C.green, 11);
+
+  svg.append('rect').attr('x',80).attr('y',60).attr('width',740).attr('height',260)
+     .attr('rx',12).attr('fill','none').attr('stroke',C.orange+'33').attr('stroke-width',1.5).attr('stroke-dasharray','6,4');
+  label(svg, 150, 52, 'ArgoCD loop', C.orange, 11);
+
+  svg.append('rect').attr('x',140).attr('y',90).attr('width',620).attr('height',200)
+     .attr('rx',10).attr('fill','none').attr('stroke',C.purple+'33').attr('stroke-width',1.5).attr('stroke-dasharray','6,4');
+  label(svg, 210, 82, 'Argo Rollouts loop', C.purple, 11);
+
+  // Git
+  node(svg, 60, 190, 90, 44, C.green, 'Git', 'source of truth');
+  // ArgoCD
+  node(svg, 230, 190, 130, 48, C.orange, 'ArgoCD', 'reconcile loop');
+  // Rollouts
+  node(svg, 430, 190, 140, 48, C.purple, 'Argo Rollouts', 'hijack rollout');
+  // K8s
+  node(svg, 640, 190, 130, 48, C.blue, 'K8s Cluster', 'actual state');
+  // Prometheus
+  node(svg, 450, 320, 120, 36, C.red, 'Prometheus', 'metrics');
+
+  arrow(svg, 107, 190, 160, 190, C.green);
+  arrow(svg, 295, 190, 355, 190, C.orange);
+  arrow(svg, 500, 190, 570, 190, C.purple);
+
+  // feedback loops
+  const arcData = [[640, 166, 230, 166, C.orange, 'drift detect (3min poll)'],
+                   [640, 214, 430, 214, C.purple, 'abort if fail']];
+  arcData.forEach(([x1,y1,x2,y2,c,lbl]) => {
+    const mid = (x1+x2)/2;
+    svg.append('path').attr('d', `M${x1},${y1} Q${mid},${y1-40} ${x2},${y2}`)
+       .attr('fill','none').attr('stroke',c).attr('stroke-width',1.5)
+       .attr('stroke-dasharray','5,3').attr('opacity',0.5).attr('marker-end','none');
+    label(svg, mid, y1-44, lbl, c, 10);
+  });
+
+  // Prometheus → Rollouts
+  svg.append('path').attr('d', 'M450,302 Q450,270 430,240')
+     .attr('fill','none').attr('stroke',C.red).attr('stroke-width',1.5)
+     .attr('stroke-dasharray','4,3').attr('opacity',0.6);
+  label(svg, 390, 280, 'PromQL query', C.red, 10);
+})();
+
+// ═══ DIAGRAM 2: ArgoCD Flow ═══
+(function() {
+  const svg = d3.select('#argocd-flow-svg');
+  const items = [
+    [80, 150, C.green, 'Git repo', 'YAML manifests'],
+    [240, 150, C.orange, 'ArgoCD', '① Poll ② Compare ③ Apply'],
+    [430, 90, C.blue, 'K8s Cluster', 'desired state applied'],
+    [430, 210, C.red, 'Drift Detect', 'cluster ≠ Git'],
+    [620, 150, C.green, 'Synced', 'Git = Cluster'],
+  ];
+  items.forEach(([x,y,c,t,s]) => node(svg, x, y, 140, 50, c, t, s));
+
+  arrow(svg, 152, 150, 168, 150, C.green);
+  arrow(svg, 310, 130, 355, 105, C.orange);
+  arrow(svg, 310, 170, 355, 195, C.orange);
+  arrow(svg, 502, 90, 546, 140, C.blue);
+  arrow(svg, 502, 210, 546, 165, C.red);
+
+  // selfheal loop
+  svg.append('path').attr('d', 'M355,195 Q280,260 240,195')
+     .attr('fill','none').attr('stroke',C.yellow).attr('stroke-width',1.5)
+     .attr('stroke-dasharray','5,3').attr('opacity',0.8);
+  label(svg, 290, 270, 'selfHeal: re-apply Git', C.yellow, 10);
+
+  // poll arrow
+  svg.append('path').attr('d', 'M80,125 Q80,40 240,105')
+     .attr('fill','none').attr('stroke',C.t2).attr('stroke-width',1).attr('stroke-dasharray','4,3').attr('opacity',0.5);
+  label(svg, 130, 42, 'poll every 3 min', C.t2, 10);
+})();
+
+// ═══ DIAGRAM 3: App of Apps ═══
+(function() {
+  const svg = d3.select('#appofapps-svg');
+  node(svg, 100, 80, 140, 44, C.green, 'Git repo', 'argocd/apps/');
+  node(svg, 350, 80, 140, 44, C.orange, 'root App', 'Application CRD');
+  node(svg, 200, 200, 110, 40, C.blue, 'App: prometheus', null);
+  node(svg, 350, 200, 110, 40, C.purple, 'App: rollouts', null);
+  node(svg, 500, 200, 110, 40, C.teal, 'App: flask-api', null);
+  node(svg, 650, 80, 100, 40, C.teal, 'K8s Cluster', null);
+
+  arrow(svg, 172, 80, 278, 80, C.green);
+  arrow(svg, 350, 102, 200, 180, C.orange);
+  arrow(svg, 350, 102, 350, 180, C.orange);
+  arrow(svg, 350, 102, 500, 180, C.orange);
+  arrow(svg, 420, 80, 598, 80, C.orange);
+
+  label(svg, 225, 150, 'auto-creates children', C.orange, 10);
+})();
+
+// ═══ DIAGRAM 4: Sync Wave ═══
+(function() {
+  const svg = d3.select('#syncwave-svg');
+  const waves = [
+    [80, 'Wave 0', 'Namespace', C.blue],
+    [240, 'Wave 1', 'ConfigMap\nSecret', C.teal],
+    [400, 'Wave 2', 'Deployment\nRollout', C.orange],
+    [560, 'Wave 3', 'Service', C.green],
+    [720, 'Wave 4', 'Ingress', C.purple],
+  ];
+  waves.forEach(([x,wave,res,c],i) => {
+    node(svg, x, 110, 130, 72, c, res.split('\n')[0], res.includes('\n') ? res.split('\n')[1] : null);
+    label(svg, x, 175, wave, c, 10);
+    if (i > 0) arrow(svg, x-60, 110, x-73, 110, C.t2);
+  });
+
+  // timeline bar
+  svg.append('line').attr('x1',15).attr('y1',200).attr('x2',785).attr('y2',200)
+     .attr('stroke',C.t2).attr('stroke-width',1).attr('opacity',0.3);
+  label(svg, 400, 215, 'Argo Rollouts apply theo thứ tự — chờ healthy trước khi tiếp', C.t2, 11);
+})();
+
+// ═══ DIAGRAM 5: Observability Flow ═══
+(function() {
+  const svg = d3.select('#obs-flow-svg');
+  const items = [
+    [80, 110, C.green, 'Flask app', 'GET /metrics auto'],
+    [250, 110, C.teal, 'ServiceMonitor', 'CRD: port http'],
+    [420, 110, C.red, 'Prometheus', 'scrape 15s → TSDB'],
+    [590, 110, C.orange, 'Grafana', 'query + dashboard'],
+    [760, 110, C.purple, 'Alerts', 'burn rate > 14×'],
+  ];
+  items.forEach(([x,y,c,t,s]) => node(svg, x, y, 140, 50, c, t, s));
+  for (let i=1; i<items.length; i++) arrow(svg, items[i-1][0]+72, items[i-1][1], items[i][0]-72, items[i][1], items[i-1][2]);
+
+  // Prometheus → AnalysisTemplate
+  svg.append('path').attr('d','M420,135 Q420,180 350,190')
+     .attr('fill','none').attr('stroke',C.purple).attr('stroke-width',1.5)
+     .attr('stroke-dasharray','4,3').attr('opacity',0.7);
+  label(svg, 340, 200, 'AnalysisTemplate query', C.purple, 10);
+})();
+
+// ═══ DIAGRAM 6: Error Budget ═══
+(function() {
+  const svg = d3.select('#budget-svg');
+  // Math breakdown
+  const steps = [
+    [80, 'SLO = 99.5%', 'budget = 0.5%', C.orange],
+    [260, '30 ngày', '= 43,200 min', C.blue],
+    [440, '× 0.5%', '= 216 phút', C.green],
+    [620, 'Error Budget', '216 min/month', C.yellow],
+  ];
+  steps.forEach(([x,t,s,c],i) => {
+    node(svg, x, 80, 150, 50, c, t, s);
+    if(i>0) {
+      svg.append('text').attr('x', x-90).attr('y', 85).attr('text-anchor','middle')
+         .attr('fill', C.t2).attr('font-size', 18).text('→');
+    }
+  });
+
+  // Budget bar
+  svg.append('rect').attr('x',40).attr('y',160).attr('width',720).attr('height',30)
+     .attr('rx',6).attr('fill',C.red+'33').attr('stroke',C.red+'55').attr('stroke-width',1);
+  svg.append('rect').attr('x',40).attr('y',160).attr('width',720*0.995).attr('height',30)
+     .attr('rx',6).attr('fill',C.green+'44').attr('stroke','none');
+  svg.append('rect').attr('x',40+720*0.995).attr('y',160).attr('width',720*0.005).attr('height',30)
+     .attr('rx',0).attr('fill',C.orange+'88').attr('stroke','none');
+  label(svg, 400, 181, 'Success (99.5%)', C.green, 11);
+  label(svg, 730, 181, 'Budget', C.orange, 10);
+
+  label(svg, 400, 220, 'Hết budget → dừng deploy mọi thứ rủi ro, focus reliability', C.t2, 11);
+})();
+
+// ═══ DIAGRAM 7: Burn Rate ═══
+(function() {
+  const svg = d3.select('#burnrate-svg');
+  const w = 780, h = 240, padL = 60, padB = 40, padT = 20;
+  const plotW = w - padL - 20, plotH = h - padB - padT;
+
+  // axes
+  svg.append('line').attr('x1',padL).attr('y1',padT).attr('x2',padL).attr('y2',padT+plotH)
+     .attr('stroke',C.t2).attr('stroke-width',1).attr('opacity',0.4);
+  svg.append('line').attr('x1',padL).attr('y1',padT+plotH).attr('x2',padL+plotW).attr('y2',padT+plotH)
+     .attr('stroke',C.t2).attr('stroke-width',1).attr('opacity',0.4);
+
+  label(svg, 20, padT+plotH/2, 'Budget %', C.t2, 10);
+  label(svg, padL+plotW/2, h-5, 'Thời gian (ngày)', C.t2, 10);
+
+  const scenarios = [
+    {rate: 1, color: C.green, label: '1× normal (0.5% err)'},
+    {rate: 10, color: C.yellow, label: '10× fast (5% err)'},
+    {rate: 14.4, color: C.red, label: '14.4× critical (7.2% err)'},
+  ];
+
+  const xScale = d => d / 30 * plotW + padL;
+  const yScale = v => padT + plotH - (v / 100 * plotH);
+
+  scenarios.forEach(({rate, color, label: lbl}) => {
+    const exhaustDay = 30 / rate;
+    const pts = [];
+    for (let d = 0; d <= Math.min(30, exhaustDay); d += 0.5) {
+      pts.push([xScale(d), yScale(100 - (d/30)*100*rate)]);
+    }
+    const line = d3.line()(pts);
+    svg.append('path').attr('d', line).attr('fill','none').attr('stroke',color)
+       .attr('stroke-width', rate===1?2:2).attr('opacity',0.85);
+
+    const lastPt = pts[pts.length-1];
+    svg.append('text').attr('x', lastPt[0]+6).attr('y', lastPt[1]+4)
+       .attr('fill',color).attr('font-size',10).text(lbl);
+  });
+
+  // Threshold line (0%)
+  svg.append('line').attr('x1',padL).attr('y1',padT+plotH).attr('x2',padL+plotW).attr('y2',padT+plotH)
+     .attr('stroke',C.red).attr('stroke-width',1.5).attr('stroke-dasharray','4,3').attr('opacity',0.4);
+
+  // Y axis labels
+  [0,25,50,75,100].forEach(v => {
+    svg.append('text').attr('x',padL-6).attr('y',yScale(v)+4).attr('text-anchor','end')
+       .attr('fill',C.t2).attr('font-size',9).text(v+'%');
+    svg.append('line').attr('x1',padL).attr('y1',yScale(v)).attr('x2',padL+plotW).attr('y2',yScale(v))
+       .attr('stroke',C.border).attr('stroke-width',0.5);
+  });
+})();
+
+// ═══ DIAGRAM 8: Canary Flow ═══
+(function() {
+  const svg = d3.select('#canary-flow-svg');
+  node(svg, 80, 140, 120, 48, C.blue, 'git push', 'image: v1→v2');
+  node(svg, 260, 140, 120, 48, C.orange, 'ArgoCD sync', 'Rollout object');
+  node(svg, 450, 140, 140, 48, C.purple, 'Argo Rollouts', 'canary steps');
+  node(svg, 650, 80, 120, 42, C.green, 'Promoted ✓', '100% v2');
+  node(svg, 650, 200, 120, 42, C.red, 'ABORT ✗', 'rollback v1');
+  node(svg, 450, 250, 140, 44, C.yellow, 'AnalysisRun', 'query Prometheus');
+
+  arrow(svg, 142, 140, 196, 140, C.blue);
+  arrow(svg, 322, 140, 376, 140, C.orange);
+  arrow(svg, 522, 120, 586, 95, C.green);
+  arrow(svg, 522, 160, 586, 185, C.red);
+  arrow(svg, 450, 164, 450, 226, C.yellow);
+  arrow(svg, 490, 250, 620, 210, C.yellow);
+
+  label(svg, 555, 65, '≥ 95% × 3', C.green, 10);
+  label(svg, 555, 230, '< 95% × 3', C.red, 10);
+})();
+
+// ═══ DIAGRAM 9: Canary Steps ═══
+(function() {
+  const svg = d3.select('#canary-steps-svg');
+  const steps = [
+    [80, '25%', C.orange, 'setWeight:25'],
+    [240, 'pause', C.yellow, 'waiting...'],
+    [400, '50%', C.blue, 'setWeight:50'],
+    [560, 'pause', C.yellow, 'waiting...'],
+    [720, '100%', C.green, 'Promoted!'],
+  ];
+  steps.forEach(([x,pct,c,lbl],i) => {
+    node(svg, x, 80, 120, 50, c, pct, lbl);
+    if(i>0) arrow(svg, x-53, 80, x-62, 80, C.t2);
+  });
+
+  // Traffic bar visualization
+  steps.forEach(([x,pct],i) => {
+    if(pct.endsWith('%')) {
+      const v = parseInt(pct)/100;
+      svg.append('rect').attr('x',x-40).attr('y',150).attr('width',80).attr('height',20)
+         .attr('rx',3).attr('fill',C.green+'33').attr('stroke',C.green+'55');
+      svg.append('rect').attr('x',x-40).attr('y',150).attr('width',80*v).attr('height',20)
+         .attr('rx',3).attr('fill',C.green+'88').attr('stroke','none');
+      label(svg, x, 168, `v2 ${pct}`, C.green, 10);
+    }
+  });
+  label(svg, 400, 190, 'v2 traffic weight progression', C.t2, 11);
+})();
+
+// ═══ DIAGRAM 10: Good/Bad Run ═══
+(function() {
+  const svg = d3.select('#goodbad-svg');
+
+  // Good run
+  svg.append('rect').attr('x',20).attr('y',20).attr('width',360).attr('height',240)
+     .attr('rx',10).attr('fill',C.green+'0a').attr('stroke',C.green+'33').attr('stroke-width',1);
+  label(svg, 200, 40, '✓ Good Run', C.green, 13);
+  const goodPts = [[50,200],[130,180],[210,140],[290,80],[360,50]];
+  svg.append('path').attr('d',d3.line()(goodPts)).attr('fill','none').attr('stroke',C.green).attr('stroke-width',2);
+  goodPts.forEach(([x,y],i) => {
+    svg.append('circle').attr('cx',x).attr('cy',y).attr('r',5).attr('fill',C.green);
+  });
+  ['25%','pause','50%','100% ✓'].forEach((t,i) => {
+    label(svg, goodPts[i+1][0], goodPts[i+1][1]-12, t, C.green, 10);
+  });
+  label(svg, 200, 248, '~20-25 phút · user ít bị ảnh hưởng', C.t1, 11);
+
+  // Bad run
+  svg.append('rect').attr('x',420).attr('y',20).attr('width',360).attr('height',240)
+     .attr('rx',10).attr('fill',C.red+'0a').attr('stroke',C.red+'33').attr('stroke-width',1);
+  label(svg, 600, 40, '✗ Bad Run', C.red, 13);
+  const badPts = [[450,180],[530,160],[600,220],[680,260]];
+  svg.append('path').attr('d',d3.line()(badPts)).attr('fill','none').attr('stroke',C.red).attr('stroke-width',2).attr('stroke-dasharray','6,3');
+  badPts.forEach(([x,y]) => {
+    svg.append('circle').attr('cx',x).attr('cy',y).attr('r',5).attr('fill',C.red);
+  });
+  label(svg, 530, 148, '25% → metric drop', C.red, 10);
+  label(svg, 630, 215, '< 95% × 3 →', C.red, 10);
+  label(svg, 680, 250, 'ABORT ⚡', C.orange, 11);
+  label(svg, 600, 248, 'rollback < 3 phút · chỉ 25% users bị ảnh hưởng', C.t1, 11);
+})();
+
+// ═══ DIAGRAM 11: Infrastructure ═══
+(function() {
+  const svg = d3.select('#infra-svg');
+
+  // Layers
+  const layers = [
+    {y:40, h:80, label:'GIT LAYER', color:C.green},
+    {y:140, h:100, label:'ARGOCD CONTROL LAYER', color:C.orange},
+    {y:260, h:80, label:'K8S CONTROL PLANE', color:C.blue},
+    {y:360, h:60, label:'DATA PLANE (Pods)', color:C.purple},
+  ];
+  layers.forEach(({y,h,label,color}) => {
+    svg.append('rect').attr('x',10).attr('y',y).attr('width',880).attr('height',h)
+       .attr('rx',8).attr('fill',color+'08').attr('stroke',color+'22').attr('stroke-width',1);
+    svg.append('text').attr('x',22).attr('y',y+15).attr('fill',color+'88')
+       .attr('font-size',9).attr('font-weight',700).attr('letter-spacing','0.15em').text(label);
+  });
+
+  // Git layer nodes
+  node(svg, 100, 80, 100, 36, C.green, 'Git repo', null);
+  node(svg, 250, 80, 100, 36, C.teal, 'Webhooks', null);
+
+  // ArgoCD layer
+  node(svg, 120, 190, 130, 42, C.orange, 'app-controller', 'reconcile');
+  node(svg, 300, 190, 120, 42, C.orange, 'repo-server', 'git poll');
+  node(svg, 470, 190, 130, 42, C.orange, 'argocd-server', 'API/UI');
+  node(svg, 650, 190, 130, 42, C.yellow, 'Argo Rollouts', 'canary ctrl');
+
+  // K8s Control Plane
+  node(svg, 120, 300, 120, 42, C.blue, 'kube-apiserver', 'etcd gateway');
+  node(svg, 290, 300, 110, 42, C.blue, 'etcd', 'source of truth');
+  node(svg, 450, 300, 130, 42, C.blue, 'controller-mgr', '30+ loops');
+  node(svg, 630, 300, 110, 42, C.blue, 'scheduler', 'pod→node');
+
+  // Data plane
+  node(svg, 120, 390, 90, 36, C.purple, 'Pods v1', null);
+  node(svg, 250, 390, 90, 36, C.purple, 'Pods v2', null);
+  node(svg, 400, 390, 110, 36, C.red, 'Prometheus', null);
+  node(svg, 560, 390, 110, 36, C.teal, 'Grafana', null);
+
+  // Arrows
+  arrow(svg, 152, 80, 196, 80, C.green);
+  arrow(svg, 300, 80, 300, 165, C.teal);
+  arrow(svg, 120, 210, 120, 278, C.orange);
+  arrow(svg, 290, 210, 290, 278, C.orange);
+  arrow(svg, 450, 210, 450, 278, C.orange);
+  arrow(svg, 120, 320, 120, 370, C.blue);
+  arrow(svg, 290, 320, 250, 370, C.blue);
+  arrow(svg, 650, 210, 450, 278, C.yellow);
+  arrow(svg, 400, 370, 400, 320, C.red);
+})();
+
+// ═══ DIAGRAM 12: Controller Chain ═══
+(function() {
+  const svg = d3.select('#controller-chain-svg');
+  const chain = [
+    {x:60, y:160, c:C.green, t:'git push', s:'YAML'},
+    {x:180, y:160, c:C.orange, t:'ArgoCD', s:'poll+apply'},
+    {x:310, y:160, c:C.blue, t:'apiserver', s:'validate→etcd'},
+    {x:440, y:160, c:C.teal, t:'RS Controller', s:'create Pods'},
+    {x:580, y:160, c:C.purple, t:'Scheduler', s:'assign→Node'},
+    {x:720, y:160, c:C.yellow, t:'kubelet', s:'pull+run'},
+  ];
+  chain.forEach(({x,y,c,t,s},i) => {
+    node(svg, x, y, 110, 48, c, t, s);
+    if(i>0) arrow(svg, x-48, y, x-55, y, C.t2);
+  });
+
+  // Rollouts intercept
+  node(svg, 370, 260, 130, 44, C.purple, 'Argo Rollouts', 'intercept here');
+  svg.append('path').attr('d','M310,182 Q370,230 370,236')
+     .attr('fill','none').attr('stroke',C.purple).attr('stroke-width',1.5)
+     .attr('stroke-dasharray','4,3').attr('opacity',0.7);
+  arrow(svg, 370, 280, 440, 182, C.purple);
+  label(svg, 310, 310, 'Rollout CRD hijacks standard Deployment rollout', C.t2, 11);
+
+  // Watch mechanism label
+  svg.append('rect').attr('x',20).attr('y',40).attr('width',840).attr('height',30)
+     .attr('rx',6).attr('fill',C.blue+'0a').attr('stroke',C.blue+'22');
+  label(svg, 440, 60, '⟳  Mỗi controller là một infinite Watch→Diff→Act loop. Không biết về nhau. Chỉ care objects trong etcd.', C.blue, 10);
+})();
+
+// ═══ DIAGRAM 13: Checklist ═══
+(function() {
+  const svg = d3.select('#checklist-svg');
+  const items = [
+    {x:130, c:C.blue, icon:'①', title:'Rollout ∈ Git', sub:'Rollout.yaml trong k8s-api/\nArgoCD sync → canary tự chạy'},
+    {x:400, c:C.orange, icon:'②', title:'ServiceMonitor', sub:'khai báo scrape target\nPrometheus thấy pod v2 → pull metrics'},
+    {x:670, c:C.purple, icon:'③', title:'AnalysisTemplate', sub:'query Prometheus mỗi 30s\n< 95% × 3 lần → ABORT'},
+  ];
+  items.forEach(({x,c,icon,title,sub}) => {
+    svg.append('rect').attr('x',x-110).attr('y',20).attr('width',220).attr('height',160)
+       .attr('rx',10).attr('fill',c+'0f').attr('stroke',c+'44').attr('stroke-width',1.5);
+    label(svg, x-70, 55, icon, c, 22);
+    label(svg, x+10, 55, title, c, 13);
+    sub.split('\n').forEach((s,i) => label(svg, x, 90+i*20, s, C.t1, 11));
+  });
+  arrow(svg, 250, 100, 288, 100, C.t2);
+  arrow(svg, 512, 100, 558, 100, C.t2);
+})();
+</script>
+</body>
+</html>

@@ -19,7 +19,7 @@ data:
         # 2. CHUYỂN TIẾP API XUỐNG BACKEND (Reverse Proxy)
         location /api/ {
             # Bất cứ ai gọi domain.com/api/... sẽ được Nginx bẻ lái gọi vào địa chỉ nội bộ này
-            proxy_pass http://backend-svc:8080/;
+            proxy_pass http://backend-svc:8080;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
         }
