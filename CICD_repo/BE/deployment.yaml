@@ -14,7 +14,7 @@ spec:
         app: backend
     spec:
       containers:
-        - name: backend-container
-          image: my-repo/my-nodejs-backend:latest
-          ports:
-            - containerPort: 8080
+      - name: backend-container
+      image: my-repo/my-nodejs-backend:latest
+      ports:
+        - containerPort: 8080
