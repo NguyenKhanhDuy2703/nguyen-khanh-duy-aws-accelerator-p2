@@ -34,4 +34,4 @@ jobs:
           git config --global user.email "action@github.com"
           git add ./CICD_repo/FE/deployment.yaml
           git commit -m "Update image tag to ${{ github.sha }}"
-          git push origin main
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} main
