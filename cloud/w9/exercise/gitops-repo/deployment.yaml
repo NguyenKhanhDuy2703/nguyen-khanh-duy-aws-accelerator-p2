@@ -8,6 +8,8 @@ spec:
   selector:
     matchLabels:
       app: nginx
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
   template:
     metadata:
       labels:

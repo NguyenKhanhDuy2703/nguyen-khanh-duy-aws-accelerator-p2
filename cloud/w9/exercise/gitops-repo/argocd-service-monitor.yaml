@@ -1,0 +1,16 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: argocd-metrics
+  namespace: monitoring # Đặt cùng namespace với Prometheus của bạn
+  labels:
+    release: prometheus # Nhãn này phải khớp với nhãn mà Prometheus của bạn đang lắng nghe
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-metrics
+  namespaceSelector:
+    matchNames:
+      - argocd # Tên namespace bạn cài Argo CD
+  endpoints:
+    - port: metrics
