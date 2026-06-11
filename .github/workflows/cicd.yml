@@ -4,6 +4,7 @@ on:
   push:
     branches: [ main ]
     paths:
+      - '.github/workflows/cicd.yml'
       - 'CICD_repo/FE/**'
       - 'CICD_repo/BE/**'
 
@@ -11,7 +12,6 @@ jobs:
   build-frontend:
     runs-on: ubuntu-latest
     permissions: { contents: write }
-    if: contains(github.event.head_commit.modified, 'CICD_repo/FE/')
     steps:
       - uses: actions/checkout@v4
       - name: Login to Docker Hub
@@ -25,7 +25,8 @@ jobs:
           sudo apt-get install -y yq
       - name: Build and Push FE
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }} ./CICD_repo/FE
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest -t ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }} ./CICD_repo/FE
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}
       - name: Update FE manifest
         run: |
@@ -40,7 +41,6 @@ jobs:
   build-backend:
     runs-on: ubuntu-latest
     permissions: { contents: write }
-    if: contains(github.event.head_commit.modified, 'CICD_repo/BE/')
     steps:
       - uses: actions/checkout@v4
       - name: Login to Docker Hub
@@ -54,7 +54,8 @@ jobs:
           sudo apt-get install -y yq
       - name: Build and Push BE
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }} ./CICD_repo/BE
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest -t ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }} ./CICD_repo/BE
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }}
       - name: Update BE manifest
         run: |
