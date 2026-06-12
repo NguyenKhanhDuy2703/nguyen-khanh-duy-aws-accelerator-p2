@@ -17,10 +17,7 @@ spec:
               matchLabels:
                 release: kube-prometheus-stack
             serviceMonitorSelectorNilUsesHelmValues: false
-            serviceMonitorNamespaceSelector:
-              matchNames:
-                - monitoring
-                - fullstack-namespace
+            serviceMonitorNamespaceSelector: {}
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
