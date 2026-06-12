@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400">
+  <defs>
+    <style>
+      .box { fill: #fff; stroke: #232F3E; stroke-width: 2; }
+      .title { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; fill: #232F3E; }
+      .subtitle { font-family: Arial, sans-serif; font-size: 12px; fill: #545B64; }
+      .arrow { stroke: #FF9900; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+      .ec2 { fill: #FF9900; }
+      .cloudwatch { fill: #B0084D; }
+      .sns { fill: #D9317C; }
+      .email { fill: #3B48CC; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#FF9900" />
+    </marker>
+  </defs>
+  
+  <text x="400" y="30" text-anchor="middle" class="title" font-size="18">AWS CloudWatch Monitoring Architecture</text>
+  
+  <rect x="50" y="100" width="150" height="120" class="box ec2" rx="5"/>
+  <text x="125" y="130" text-anchor="middle" class="title">EC2 Instance</text>
+  <text x="125" y="155" text-anchor="middle" class="subtitle">t2.micro</text>
+  <text x="125" y="175" text-anchor="middle" class="subtitle">Amazon Linux 2023</text>
+  <text x="125" y="195" text-anchor="middle" class="subtitle">+ CloudWatch Agent</text>
+  
+  <rect x="280" y="100" width="150" height="120" class="box cloudwatch" rx="5"/>
+  <text x="355" y="130" text-anchor="middle" class="title" fill="#fff">CloudWatch</text>
+  <text x="355" y="155" text-anchor="middle" class="subtitle" fill="#fff">Metric: CPUUtilization</text>
+  <text x="355" y="175" text-anchor="middle" class="subtitle" fill="#fff">Threshold: > 80%</text>
+  <text x="355" y="195" text-anchor="middle" class="subtitle" fill="#fff">Period: 5 minutes</text>
+  
+  <rect x="510" y="100" width="150" height="120" class="box sns" rx="5"/>
+  <text x="585" y="130" text-anchor="middle" class="title" fill="#fff">SNS Topic</text>
+  <text x="585" y="155" text-anchor="middle" class="subtitle" fill="#fff">ec2-cpu-alert-topic</text>
+  <text x="585" y="180" text-anchor="middle" class="subtitle" fill="#fff">Protocol: Email</text>
+  
+  <rect x="510" y="280" width="150" height="80" class="box email" rx="5"/>
+  <text x="585" y="310" text-anchor="middle" class="title" fill="#fff">📧 Email Alert</text>
+  <text x="585" y="335" text-anchor="middle" class="subtitle" fill="#fff">your-email@gmail.com</text>
+  
+  <path d="M 200 160 L 280 160" class="arrow"/>
+  <text x="240" y="150" text-anchor="middle" class="subtitle" font-size="10">metrics</text>
+  
+  <path d="M 430 160 L 510 160" class="arrow"/>
+  <text x="470" y="150" text-anchor="middle" class="subtitle" font-size="10">alarm trigger</text>
+  
+  <path d="M 585 220 L 585 280" class="arrow"/>
+  <text x="620" y="255" text-anchor="middle" class="subtitle" font-size="10">notification</text>
+  
+  <rect x="50" y="280" width="380" height="80" class="box" fill="#F7F9FA" rx="5"/>
+  <text x="240" y="305" text-anchor="middle" class="title">CloudWatch Agent Metrics</text>
+  <text x="240" y="330" text-anchor="middle" class="subtitle">CPU Usage | Memory Used | Disk Usage</text>
+  <text x="240" y="350" text-anchor="middle" class="subtitle">Namespace: CustomEC2Metrics</text>
+</svg>

@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 500">
+  <defs>
+    <style>
+      .step { fill: #fff; stroke: #232F3E; stroke-width: 2; }
+      .step-title { font-family: Arial, sans-serif; font-size: 13px; font-weight: bold; fill: #232F3E; }
+      .step-text { font-family: Arial, sans-serif; font-size: 11px; fill: #545B64; }
+      .arrow { stroke: #FF9900; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+      .time { font-family: Arial, sans-serif; font-size: 10px; fill: #D13212; font-style: italic; }
+      .number { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #fff; }
+      .circle { fill: #FF9900; }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#FF9900" />
+    </marker>
+  </defs>
+  
+  <text x="350" y="25" text-anchor="middle" class="step-title" font-size="16">Lab Workflow Timeline</text>
+  
+  <circle cx="30" cy="70" r="18" class="circle"/>
+  <text x="30" y="76" text-anchor="middle" class="number">1</text>
+  <rect x="60" y="50" width="180" height="60" class="step" rx="5"/>
+  <text x="150" y="70" text-anchor="middle" class="step-title">Deploy Infrastructure</text>
+  <text x="150" y="88" text-anchor="middle" class="step-text">terraform init</text>
+  <text x="150" y="102" text-anchor="middle" class="step-text">terraform apply</text>
+  <text x="250" y="65" class="time">⏱ 3-4 phút</text>
+  
+  <path d="M 150 110 L 150 140" class="arrow"/>
+  
+  <circle cx="30" cy="160" r="18" class="circle"/>
+  <text x="30" y="166" text-anchor="middle" class="number">2</text>
+  <rect x="60" y="140" width="180" height="60" class="step" rx="5"/>
+  <text x="150" y="160" text-anchor="middle" class="step-title">Confirm SNS Email</text>
+  <text x="150" y="178" text-anchor="middle" class="step-text">Check inbox + spam</text>
+  <text x="150" y="192" text-anchor="middle" class="step-text">Click "Confirm subscription"</text>
+  <text x="250" y="155" class="time">⏱ 1 phút</text>
+  
+  <path d="M 150 200 L 150 230" class="arrow"/>
+  
+  <circle cx="30" cy="250" r="18" class="circle"/>
+  <text x="30" y="256" text-anchor="middle" class="number">3</text>
+  <rect x="60" y="230" width="180" height="60" class="step" rx="5"/>
+  <text x="150" y="250" text-anchor="middle" class="step-title">SSH to EC2</text>
+  <text x="150" y="268" text-anchor="middle" class="step-text">ssh ec2-user@PUBLIC_IP</text>
+  <text x="150" y="282" text-anchor="middle" class="step-text">./check-agent-status.sh</text>
+  <text x="250" y="245" class="time">⏱ 1 phút</text>
+  
+  <path d="M 150 290 L 150 320" class="arrow"/>
+  
+  <circle cx="30" cy="340" r="18" class="circle"/>
+  <text x="30" y="346" text-anchor="middle" class="number">4</text>
+  <rect x="60" y="320" width="180" height="60" class="step" rx="5"/>
+  <text x="150" y="340" text-anchor="middle" class="step-title">Run Stress Test</text>
+  <text x="150" y="358" text-anchor="middle" class="step-text">./stress-cpu.sh</text>
+  <text x="150" y="372" text-anchor="middle" class="step-text">CPU → 100%</text>
+  <text x="250" y="335" class="time">⏱ 10 phút</text>
+  
+  <path d="M 240 350 L 310 350" class="arrow"/>
+  
+  <circle cx="460" cy="70" r="18" class="circle"/>
+  <text x="460" y="76" text-anchor="middle" class="number">5</text>
+  <rect x="330" y="50" width="180" height="60" class="step" rx="5"/>
+  <text x="420" y="70" text-anchor="middle" class="step-title">Wait for Alarm</text>
+  <text x="420" y="88" text-anchor="middle" class="step-text">CloudWatch evaluates</text>
+  <text x="420" y="102" text-anchor="middle" class="step-text">CPU > 80% for 5 min</text>
+  <text x="520" y="65" class="time">⏱ 5-6 phút</text>
+  
+  <path d="M 420 110 L 420 140" class="arrow"/>
+  
+  <circle cx="460" cy="160" r="18" class="circle"/>
+  <text x="460" y="166" text-anchor="middle" class="number">6</text>
+  <rect x="330" y="140" width="180" height="60" class="step" rx="5"/>
+  <text x="420" y="160" text-anchor="middle" class="step-title">📧 Receive Email ALARM</text>
+  <text x="420" y="178" text-anchor="middle" class="step-text">State: ALARM</text>
+  <text x="420" y="192" text-anchor="middle" class="step-text">Reason: CPU > 80%</text>
+  <text x="520" y="155" class="time">⏱ Ngay lập tức</text>
+  
+  <path d="M 420 200 L 420 230" class="arrow"/>
+  
+  <circle cx="460" cy="250" r="18" class="circle"/>
+  <text x="460" y="256" text-anchor="middle" class="number">7</text>
+  <rect x="330" y="230" width="180" height="60" class="step" rx="5"/>
+  <text x="420" y="250" text-anchor="middle" class="step-title">Take Screenshots</text>
+  <text x="420" y="268" text-anchor="middle" class="step-text">SNS, CloudWatch, EC2</text>
+  <text x="420" y="282" text-anchor="middle" class="step-text">Email, Metrics</text>
+  <text x="520" y="245" class="time">⏱ 5 phút</text>
+  
+  <path d="M 420 290 L 420 320" class="arrow"/>
+  
+  <circle cx="460" cy="340" r="18" class="circle"/>
+  <text x="460" y="346" text-anchor="middle" class="number">8</text>
+  <rect x="330" y="320" width="180" height="60" class="step" rx="5"/>
+  <text x="420" y="340" text-anchor="middle" class="step-title">Cleanup Resources</text>
+  <text x="420" y="358" text-anchor="middle" class="step-text">terraform destroy</text>
+  <text x="420" y="372" text-anchor="middle" class="step-text">Avoid charges</text>
+  <text x="520" y="335" class="time">⏱ 2-3 phút</text>
+  
+  <rect x="50" y="430" width="600" height="50" fill="#FFF3CD" stroke="#FF9900" stroke-width="2" rx="5"/>
+  <text x="350" y="450" text-anchor="middle" class="step-title">⏱️ Total Time: ~25-30 phút</text>
+  <text x="350" y="468" text-anchor="middle" class="step-text">Bao gồm thời gian chờ alarm kích hoạt và stress test hoàn tất</text>
+</svg>

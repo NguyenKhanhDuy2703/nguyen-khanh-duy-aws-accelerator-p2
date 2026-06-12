@@ -1,0 +1,16 @@
+# ============================================================
+# FILE MẪU: terraform.tfvars
+# ============================================================
+# Hướng dẫn sử dụng:
+# 1. Copy file này thành "terraform.tfvars" (bỏ .example)
+# 2. Thay đổi các giá trị bên dưới theo thông tin của bạn
+# 3. File terraform.tfvars sẽ tự động được Terraform load khi chạy
+
+# Email của bạn (THAY ĐỔI!)
+alert_email = "your-real-email@gmail.com"
+
+# AWS Region (thay đổi nếu cần)
+aws_region = "us-east-1"
+
+# AMI ID (giữ nguyên hoặc tìm AMI phù hợp với region của bạn)
+ami_id = "ami-0c02fb55d7c4a08a0"
