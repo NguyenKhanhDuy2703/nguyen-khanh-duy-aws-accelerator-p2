@@ -2,9 +2,9 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: root-app-manager
-  namespace: argocd # Root App PHẢI nằm trong namespace của ArgoCD
+  namespace: argocd 
   finalizers:
-    - resources-finalizer.argocd.argoproj.io # Giúp dọn dẹp sạch sẽ nếu bạn xóa Root App
+    - resources-finalizer.argocd.argoproj.io 
 spec:
   project: default
   source:
@@ -13,7 +13,7 @@ spec:
     path: CICD_repo/argocd/apps 
   destination:
     server: 'https://kubernetes.default.svc'
-    namespace: argocd # BẮT BUỘC: Vì các App con bản chất cũng là tài nguyên của ArgoCD, nên nó phải được đẻ ra ở đây.
+    namespace: argocd 
   syncPolicy:
     automated:
       prune: true
