@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: backend-container
-          image: nkd7059181/backend:5e09f311ddbd500a1d1e7d24e08775c652bd0859
+          image: nkd7059181/backend:1382bfcc1db5da0f520d2e0edfca6f32c2d7b1cb
           ports:
             - containerPort: 8080
               name: http
