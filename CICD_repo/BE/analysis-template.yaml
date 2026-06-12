@@ -10,6 +10,7 @@ spec:
   # Metric 1: Success Rate phải >= 95%
   - name: success-rate
     interval: 10s
+    count: 5
     successCondition: result >= 0.95
     failureLimit: 3
     provider:
@@ -23,6 +24,7 @@ spec:
   # Metric 2: P95 Latency phải < 1 giây
   - name: latency-p95
     interval: 10s
+    count: 5
     successCondition: result < 1.0
     failureLimit: 3
     provider:
@@ -36,6 +38,7 @@ spec:
   # Metric 3: Pod phải Ready
   - name: pod-ready
     interval: 10s
+    count: 5
     successCondition: result >= 1
     failureLimit: 3
     provider:
