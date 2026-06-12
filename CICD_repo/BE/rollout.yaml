@@ -1,0 +1,57 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: backend-rollout
+  namespace: fullstack-namespace
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend-container
+        image: nkd7059181/backend:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: VERSION
+          value: "v1.0"
+        - name: ERROR_RATE
+          value: "0"
+  strategy:
+    canary:
+      # Canary Service để test version mới
+      canaryService: backend-canary-svc
+      # Stable Service cho production traffic
+      stableService: backend-svc
+      steps:
+      # Step 1: Deploy canary và route 20% traffic
+      - setWeight: 20
+      # Step 2: Pause 30 giây để metrics được thu thập
+      - pause: {duration: 30s}
+      # Step 3: Chạy analysis để check metrics
+      - analysis:
+          templates:
+          - templateName: backend-success-rate
+          args:
+          - name: service-name
+            value: backend-svc
+      # Step 4: Nếu analysis pass, tăng lên 50%
+      - setWeight: 50
+      - pause: {duration: 30s}
+      # Step 5: Final analysis trước khi full rollout
+      - analysis:
+          templates:
+          - templateName: backend-success-rate
+          args:
+          - name: service-name
+            value: backend-svc
+      # Step 6: Full rollout 100%
+      - setWeight: 100

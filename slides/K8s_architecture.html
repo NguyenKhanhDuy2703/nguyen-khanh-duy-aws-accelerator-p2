@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kiến trúc Kubernetes — Từ Overview đến Internals</title>
+<style>
+:root{
+  --bg: #0b0f14;
+  --bg-panel: #11171f;
+  --bg-card: #161d27;
+  --line: #233140;
+  --text: #e7edf3;
+  --text-dim: #8ea3b8;
+  --accent: #4fd1c5;
+  --accent2: #f0a868;
+  --accent3: #c792ea;
+  --blue: #5fa8ee;
+  --green: #7ddc8c;
+  --red: #f47174;
+  --mono: 'JetBrains Mono','Fira Code',ui-monospace,Consolas,monospace;
+  --sans: 'IBM Plex Sans','Segoe UI',Arial,sans-serif;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  background:
+    radial-gradient(ellipse at top right, rgba(79,209,197,0.06), transparent 50%),
+    radial-gradient(ellipse at bottom left, rgba(199,146,234,0.05), transparent 50%),
+    var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  line-height:1.65;
+  font-size:16px;
+}
+.layout{display:flex; min-height:100vh;}
+
+/* SIDEBAR */
+nav.toc{
+  width:280px; flex-shrink:0;
+  background:var(--bg-panel);
+  border-right:1px solid var(--line);
+  padding:28px 22px;
+  position:sticky; top:0; height:100vh; overflow-y:auto;
+}
+nav.toc .brand{
+  font-family:var(--mono); font-size:13px; letter-spacing:2px;
+  color:var(--accent); text-transform:uppercase; margin-bottom:4px;
+}
+nav.toc h1{
+  font-size:22px; font-weight:700; margin-bottom:24px; line-height:1.3;
+  background:linear-gradient(135deg, var(--text), var(--text-dim));
+  -webkit-background-clip:text; background-clip:text;
+}
+nav.toc .group{margin-bottom:6px;}
+nav.toc .group-title{
+  font-family:var(--mono); font-size:11px; color:var(--text-dim);
+  text-transform:uppercase; letter-spacing:1.5px; margin:18px 0 8px;
+  border-bottom:1px solid var(--line); padding-bottom:6px;
+}
+nav.toc a{
+  display:block; color:var(--text-dim); text-decoration:none;
+  font-size:13.5px; padding:6px 10px; border-radius:6px;
+  border-left:2px solid transparent; transition:all .15s;
+}
+nav.toc a:hover{color:var(--text); background:rgba(79,209,197,0.08); border-left-color:var(--accent);}
+
+/* MAIN */
+main{flex:1; min-width:0;}
+.hero{
+  padding:80px 64px 56px;
+  border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg, rgba(79,209,197,0.05), transparent);
+  position:relative; overflow:hidden;
+}
+.hero .eyebrow{
+  font-family:var(--mono); color:var(--accent); font-size:13px;
+  letter-spacing:3px; text-transform:uppercase; margin-bottom:14px;
+}
+.hero h1{
+  font-size:clamp(34px,5vw,56px); font-weight:800; letter-spacing:-1px;
+  margin-bottom:18px; max-width:820px;
+}
+.hero h1 span{color:var(--accent2);}
+.hero p.lead{
+  font-size:18px; color:var(--text-dim); max-width:700px;
+}
+.hero .badges{display:flex; gap:10px; margin-top:24px; flex-wrap:wrap;}
+.badge{
+  font-family:var(--mono); font-size:12px; padding:6px 12px;
+  border:1px solid var(--line); border-radius:20px; color:var(--text-dim);
+}
+
+section{padding:56px 64px; border-bottom:1px solid var(--line);}
+section:last-child{border-bottom:none;}
+section h2{
+  font-size:30px; font-weight:800; margin-bottom:8px; letter-spacing:-0.5px;
+  display:flex; align-items:center; gap:14px;
+}
+section h2 .num{
+  font-family:var(--mono); color:var(--accent); font-size:18px;
+  border:1px solid var(--line); border-radius:8px; padding:4px 10px;
+}
+section .section-sub{color:var(--text-dim); margin-bottom:32px; font-size:15.5px; max-width:760px;}
+section h3{font-size:20px; font-weight:700; margin:32px 0 12px; color:var(--text);}
+section h3 .dot{color:var(--accent);}
+p{margin-bottom:14px; color:#cdd9e3; max-width:820px;}
+strong{color:var(--text); font-weight:600;}
+code{
+  font-family:var(--mono); background:var(--bg-card); border:1px solid var(--line);
+  padding:2px 6px; border-radius:4px; font-size:0.88em; color:var(--accent);
+}
+ul, ol{margin:0 0 16px 22px; max-width:780px; color:#cdd9e3;}
+li{margin-bottom:8px;}
+li::marker{color:var(--accent);}
+
+/* CARDS / GRID */
+.grid{display:grid; gap:18px; margin:24px 0;}
+.grid.cols-2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr));}
+.grid.cols-3{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));}
+.card{
+  background:var(--bg-card); border:1px solid var(--line); border-radius:12px;
+  padding:20px 22px;
+}
+.card h4{
+  font-size:15px; font-weight:700; margin-bottom:8px; display:flex; align-items:center; gap:8px;
+}
+.card h4 .chip{
+  font-family:var(--mono); font-size:11px; padding:2px 8px; border-radius:6px;
+  background:rgba(79,209,197,0.12); color:var(--accent);
+}
+.card p{font-size:14px; margin-bottom:0; color:var(--text-dim);}
+.card.cp h4 .chip{background:rgba(95,168,238,0.15); color:var(--blue);}
+.card.node h4 .chip{background:rgba(247,165,93,0.15); color:var(--accent2);}
+.card.pod h4 .chip{background:rgba(199,146,234,0.15); color:var(--accent3);}
+.card.net h4 .chip{background:rgba(125,220,140,0.15); color:var(--green);}
+
+/* DIAGRAM WRAP */
+.diagram{
+  background:var(--bg-card); border:1px solid var(--line); border-radius:14px;
+  padding:24px; margin:28px 0; overflow:hidden;
+}
+.diagram-title{
+  font-family:var(--mono); font-size:12px; color:var(--text-dim);
+  text-transform:uppercase; letter-spacing:1.5px; margin-bottom:16px;
+  display:flex; align-items:center; gap:10px;
+}
+.diagram-title::before{content:"◆"; color:var(--accent);}
+.diagram svg{width:100%; height:auto; display:block;}
+.diagram .caption{margin-top:14px; font-size:13.5px; color:var(--text-dim); border-top:1px solid var(--line); padding-top:12px;}
+
+/* legend */
+.legend{display:flex; gap:18px; flex-wrap:wrap; margin-top:14px; font-size:12.5px; color:var(--text-dim);}
+.legend span{display:inline-flex; align-items:center; gap:6px;}
+.legend .sw{width:12px; height:12px; border-radius:3px; display:inline-block;}
+
+/* table */
+table{width:100%; border-collapse:collapse; margin:20px 0; font-size:14px;}
+th,td{text-align:left; padding:10px 14px; border-bottom:1px solid var(--line);}
+th{color:var(--accent); font-family:var(--mono); font-size:12px; text-transform:uppercase; letter-spacing:1px;}
+td{color:#cdd9e3;}
+tr:hover td{background:rgba(255,255,255,0.02);}
+
+/* flow steps */
+.steps{margin:20px 0; max-width:820px;}
+.step{
+  display:flex; gap:16px; padding:14px 0; border-bottom:1px solid var(--line);
+}
+.step:last-child{border-bottom:none;}
+.step .idx{
+  font-family:var(--mono); font-weight:800; font-size:18px; color:var(--accent);
+  min-width:34px; height:34px; border:1px solid var(--line); border-radius:8px;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.step .body h5{font-size:15px; margin-bottom:4px;}
+.step .body p{font-size:14px; margin-bottom:0; color:var(--text-dim);}
+
+/* footer */
+footer{padding:40px 64px; color:var(--text-dim); font-size:13px; font-family:var(--mono);}
+
+@media (max-width:900px){
+  .layout{flex-direction:column;}
+  nav.toc{width:100%; height:auto; position:relative;}
+  .hero, section{padding:40px 24px;}
+}
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <nav class="toc">
+    <div class="brand">// architecture deep-dive</div>
+    <h1>Kubernetes Internals</h1>
+
+    <div class="group">
+      <div class="group-title">Tổng quan</div>
+      <a href="#overview">1. Overview kiến trúc</a>
+      <a href="#cluster">2. Cấu trúc Cluster</a>
+    </div>
+    <div class="group">
+      <div class="group-title">Control Plane</div>
+      <a href="#cp-overview">3. Control Plane chi tiết</a>
+      <a href="#apiserver">3.1 API Server</a>
+      <a href="#etcd">3.2 etcd</a>
+      <a href="#scheduler">3.3 Scheduler</a>
+      <a href="#controller">3.4 Controller Manager</a>
+    </div>
+    <div class="group">
+      <div class="group-title">Worker Node</div>
+      <a href="#node-overview">4. Node chi tiết</a>
+      <a href="#kubelet">4.1 Kubelet</a>
+      <a href="#kube-proxy">4.2 kube-proxy</a>
+      <a href="#container-runtime">4.3 Container Runtime (CRI)</a>
+    </div>
+    <div class="group">
+      <div class="group-title">Workload</div>
+      <a href="#pod-internals">5. Pod Internals</a>
+      <a href="#scheduling-flow">6. Luồng Scheduling</a>
+    </div>
+    <div class="group">
+      <div class="group-title">Networking</div>
+      <a href="#networking">7. Mô hình Network</a>
+      <a href="#service">8. Service & DNS</a>
+    </div>
+    <div class="group">
+      <div class="group-title">Vận hành</div>
+      <a href="#storage">9. Storage (CSI)</a>
+      <a href="#reconcile">10. Reconciliation Loop</a>
+    </div>
+  </nav>
+
+  <main>
+
+    <div class="hero">
+      <div class="eyebrow">Deep Dive · Phiên bản chi tiết</div>
+      <h1>Bên trong kiến trúc <span>Kubernetes</span>: từ Overview đến từng thành phần nội bộ</h1>
+      <p class="lead">
+        Tài liệu này phân rã Kubernetes thành các lớp: Control Plane, Worker Node, Pod, Network và Storage —
+        mỗi phần đi kèm sơ đồ và giải thích luồng dữ liệu/điều khiển thực tế giữa các thành phần.
+      </p>
+      <div class="badges">
+        <span class="badge">Control Plane</span>
+        <span class="badge">kubelet / kube-proxy</span>
+        <span class="badge">etcd</span>
+        <span class="badge">CNI / CSI / CRI</span>
+        <span class="badge">Scheduling</span>
+        <span class="badge">Reconciliation Loop</span>
+      </div>
+    </div>
+
+    <!-- 1. OVERVIEW -->
+    <section id="overview">
+      <h2><span class="num">01</span>Overview kiến trúc tổng thể</h2>
+      <p class="section-sub">
+        Kubernetes là hệ thống phân tán theo mô hình <strong>declarative</strong> (khai báo trạng thái mong muốn)
+        và <strong>controller-based reconciliation</strong> (vòng lặp đưa trạng thái thực tế khớp với trạng thái mong muốn).
+        Toàn bộ cluster chia thành 2 mặt phẳng: <strong>Control Plane</strong> (bộ não, quản lý trạng thái)
+        và <strong>Data Plane / Worker Nodes</strong> (nơi container thực sự chạy).
+      </p>
+
+      <div class="diagram">
+        <div class="diagram-title">Sơ đồ 1 — Tổng quan kiến trúc Cluster</div>
+        <svg viewBox="0 0 1200 620" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+              <path d="M0,0 L9,3.5 L0,7 Z" fill="#4fd1c5"/>
+            </marker>
+            <marker id="arrowOrange" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+              <path d="M0,0 L9,3.5 L0,7 Z" fill="#f0a868"/>
+            </marker>
+            <marker id="arrowGreen" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+              <path d="M0,0 L9,3.5 L0,7 Z" fill="#7ddc8c"/>
+            </marker>
+            <marker id="arrowPurple" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+              <path d="M0,0 L9,3.5 L0,7 Z" fill="#c792ea"/>
+            </marker>
+            <marker id="arrowBlue" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+              <path d="M0,0 L9,3.5 L0,7 Z" fill="#5fa8ee"/>
+            </marker>
+            <marker id="arrowRed" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+              <path d="M0,0 L9,3.5 L0,7 Z" fill="#f47174"/>
+            </marker>
+            <marker id="arrowGray" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+              <path d="M0,0 L9,3.5 L0,7 Z" fill="#8ea3b8"/>
+            </marker>
+          </defs>
+          <!-- User -->
+          <rect x="20" y="20" width="160" height="60" rx="10" fill="#161d27" stroke="#5fa8ee" stroke-width="1.5"/>
+          <text x="100" y="45" text-anchor="middle" fill="#e7edf3" font-size="14" font-weight="700" font-family="IBM Plex Sans">User / CI-CD</text>
+          <text x="100" y="64" text-anchor="middle" fill="#8ea3b8" font-size="12" font-family="JetBrains Mono">kubectl / Helm</text>
+
+          <!-- Control Plane box -->
+          <rect x="20" y="120" width="1160" height="240" rx="14" fill="#11171f" stroke="#233140" stroke-width="1.5"/>
+          <text x="44" y="152" fill="#5fa8ee" font-size="13" font-family="JetBrains Mono" letter-spacing="2">CONTROL PLANE</text>
+
+          <!-- API Server -->
+          <rect x="60" y="175" width="190" height="80" rx="10" fill="#161d27" stroke="#5fa8ee" stroke-width="1.5"/>
+          <text x="155" y="205" text-anchor="middle" fill="#e7edf3" font-size="15" font-weight="700" font-family="IBM Plex Sans">kube-apiserver</text>
+          <text x="155" y="225" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">Cổng giao tiếp duy nhất</text>
+          <text x="155" y="241" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">Auth · Validate · REST</text>
+
+          <!-- etcd -->
+          <rect x="300" y="175" width="160" height="80" rx="10" fill="#161d27" stroke="#5fa8ee" stroke-width="1.5"/>
+          <text x="380" y="205" text-anchor="middle" fill="#e7edf3" font-size="15" font-weight="700" font-family="IBM Plex Sans">etcd</text>
+          <text x="380" y="225" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">Key-Value Store</text>
+          <text x="380" y="241" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">Nguồn sự thật (SSOT)</text>
+
+          <!-- Scheduler -->
+          <rect x="500" y="175" width="180" height="80" rx="10" fill="#161d27" stroke="#5fa8ee" stroke-width="1.5"/>
+          <text x="590" y="205" text-anchor="middle" fill="#e7edf3" font-size="15" font-weight="700" font-family="IBM Plex Sans">kube-scheduler</text>
+          <text x="590" y="225" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">Chọn Node phù hợp</text>
+          <text x="590" y="241" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">cho Pod mới</text>
+
+          <!-- Controller Manager -->
+          <rect x="720" y="175" width="220" height="80" rx="10" fill="#161d27" stroke="#5fa8ee" stroke-width="1.5"/>
+          <text x="830" y="205" text-anchor="middle" fill="#e7edf3" font-size="15" font-weight="700" font-family="IBM Plex Sans">kube-controller-manager</text>
+          <text x="830" y="225" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">Vòng lặp reconcile</text>
+          <text x="830" y="241" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">Deployment · ReplicaSet...</text>
+
+          <!-- Cloud Controller -->
+          <rect x="980" y="175" width="170" height="80" rx="10" fill="#161d27" stroke="#5fa8ee" stroke-width="1.5"/>
+          <text x="1065" y="205" text-anchor="middle" fill="#e7edf3" font-size="15" font-weight="700" font-family="IBM Plex Sans">cloud-controller</text>
+          <text x="1065" y="225" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">manager (tuỳ chọn)</text>
+          <text x="1065" y="241" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">Tích hợp Cloud Provider</text>
+
+          <!-- arrows top -->
+          <line x1="100" y1="80" x2="155" y2="175" stroke="#5fa8ee" stroke-width="2" marker-end="url(#arrowBlue)"/>
+          <line x1="250" y1="212" x2="300" y2="212" stroke="#4fd1c5" stroke-width="2" marker-end="url(#arrow)"/>
+          <line x1="300" y1="232" x2="250" y2="232" stroke="#4fd1c5" stroke-width="2" marker-end="url(#arrow)"/>
+          <path d="M590 175 Q470 95 250 215" fill="none" stroke="#4fd1c5" stroke-width="1.5" marker-end="url(#arrow)" stroke-dasharray="4 3"/>
+          <path d="M830 175 Q500 60 250 222" fill="none" stroke="#4fd1c5" stroke-width="1.5" marker-end="url(#arrow)" stroke-dasharray="4 3"/>
+          <path d="M1065 175 Q540 45 250 229" fill="none" stroke="#4fd1c5" stroke-width="1.5" marker-end="url(#arrow)" stroke-dasharray="4 3"/>
+
+          <text x="700" y="285" text-anchor="middle" fill="#4fd1c5" font-size="11" font-family="JetBrains Mono">Tất cả thành phần CHỈ giao tiếp qua API Server (watch / get / write vào etcd)</text>
+
+          <!-- Worker nodes -->
+          <text x="44" y="395" fill="#f0a868" font-size="13" font-family="JetBrains Mono" letter-spacing="2">WORKER NODES (DATA PLANE)</text>
+
+          <!-- node 1 -->
+          <g>
+            <rect x="60" y="415" width="340" height="180" rx="14" fill="#11171f" stroke="#f0a868" stroke-width="1.5"/>
+            <text x="80" y="442" fill="#f0a868" font-size="14" font-weight="700" font-family="IBM Plex Sans">Node 1</text>
+
+            <rect x="80" y="455" width="140" height="50" rx="8" fill="#161d27" stroke="#233140"/>
+            <text x="150" y="475" text-anchor="middle" fill="#e7edf3" font-size="12" font-weight="700">kubelet</text>
+            <text x="150" y="492" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">Node agent</text>
+
+            <rect x="240" y="455" width="140" height="50" rx="8" fill="#161d27" stroke="#233140"/>
+            <text x="310" y="475" text-anchor="middle" fill="#e7edf3" font-size="12" font-weight="700">kube-proxy</text>
+            <text x="310" y="492" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">Network rules</text>
+
+            <rect x="80" y="520" width="300" height="60" rx="8" fill="#161d27" stroke="#c792ea" stroke-width="1.2"/>
+            <text x="230" y="540" text-anchor="middle" fill="#e7edf3" font-size="12" font-weight="700">Pods (containers)</text>
+            <text x="230" y="557" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">Container Runtime (containerd/CRI-O)</text>
+            <text x="230" y="572" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">via CRI</text>
+          </g>
+
+          <!-- node 2 -->
+          <g>
+            <rect x="430" y="415" width="340" height="180" rx="14" fill="#11171f" stroke="#f0a868" stroke-width="1.5"/>
+            <text x="450" y="442" fill="#f0a868" font-size="14" font-weight="700" font-family="IBM Plex Sans">Node 2</text>
+
+            <rect x="450" y="455" width="140" height="50" rx="8" fill="#161d27" stroke="#233140"/>
+            <text x="520" y="475" text-anchor="middle" fill="#e7edf3" font-size="12" font-weight="700">kubelet</text>
+            <text x="520" y="492" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">Node agent</text>
+
+            <rect x="610" y="455" width="140" height="50" rx="8" fill="#161d27" stroke="#233140"/>
+            <text x="680" y="475" text-anchor="middle" fill="#e7edf3" font-size="12" font-weight="700">kube-proxy</text>
+            <text x="680" y="492" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">Network rules</text>
+
+            <rect x="450" y="520" width="300" height="60" rx="8" fill="#161d27" stroke="#c792ea" stroke-width="1.2"/>
+            <text x="600" y="540" text-anchor="middle" fill="#e7edf3" font-size="12" font-weight="700">Pods (containers)</text>
+            <text x="600" y="557" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">Container Runtime (containerd/CRI-O)</text>
+            <text x="600" y="572" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">via CRI</text>
+          </g>
+
+          <!-- node N -->
+          <g>
+            <rect x="800" y="415" width="350" height="180" rx="14" fill="#11171f" stroke="#f0a868" stroke-width="1.5" stroke-dasharray="6 4"/>
+            <text x="975" y="510" text-anchor="middle" fill="#8ea3b8" font-size="14" font-family="JetBrains Mono">... Node N</text>
+            <text x="975" y="535" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">(scale ngang theo nhu cầu)</text>
+          </g>
+
+          <!-- connecting lines node <-> apiserver -->
+          <line x1="150" y1="415" x2="155" y2="255" stroke="#f0a868" stroke-width="2" marker-end="url(#arrowOrange)"/>
+          <line x1="520" y1="415" x2="160" y2="255" stroke="#f0a868" stroke-width="2" marker-end="url(#arrowOrange)" stroke-dasharray="4 3"/>
+          <line x1="975" y1="415" x2="165" y2="255" stroke="#f0a868" stroke-width="2" marker-end="url(#arrowOrange)" stroke-dasharray="4 3"/>
+          <text x="610" y="382" text-anchor="middle" fill="#f0a868" font-size="11" font-family="JetBrains Mono">kubelet trên mỗi Node liên tục Watch &amp; báo cáo trạng thái về API Server</text>
+        </svg>
+        <div class="caption">
+          Mọi tương tác trong cluster — từ <code>kubectl apply</code> đến việc kubelet báo cáo trạng thái Pod —
+          đều đi qua <strong>API Server</strong>. Nó là "cửa ngõ" duy nhất tới <strong>etcd</strong>, nơi lưu trữ toàn bộ trạng thái cluster.
+        </div>
+      </div>
+
+      <div class="grid cols-2">
+        <div class="card">
+          <h4><span class="chip">Control Plane</span> Não bộ của Cluster</h4>
+          <p>Quyết định <em>cái gì nên xảy ra</em>: lưu trạng thái mong muốn, lên lịch Pod, theo dõi và sửa sai lệch.
+          Thường chạy trên các Node riêng (master nodes), có thể HA với nhiều bản sao.</p>
+        </div>
+        <div class="card">
+          <h4><span class="chip">Worker Node</span> Nơi việc thực thi</h4>
+          <p>Thực thi <em>những gì Control Plane yêu cầu</em>: chạy container, quản lý network rule,
+          mount volume, báo cáo metric/health liên tục.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. CLUSTER STRUCTURE -->
+    <section id="cluster">
+      <h2><span class="num">02</span>Phân cấp đối tượng trong Cluster</h2>
+      <p class="section-sub">
+        Trước khi đi sâu vào từng tiến trình, cần hiểu cách Kubernetes tổ chức các <strong>API object</strong> —
+        đây là "ngôn ngữ" mà mọi thành phần dùng để giao tiếp.
+      </p>
+
+      <div class="diagram">
+        <div class="diagram-title">Sơ đồ 2 — Cây phân cấp Workload Object</div>
+        <svg viewBox="0 0 1100 320" xmlns="http://www.w3.org/2000/svg">
+          <!-- Deployment -->
+          <rect x="40" y="30" width="200" height="60" rx="10" fill="#161d27" stroke="#5fa8ee" stroke-width="1.5"/>
+          <text x="140" y="58" text-anchor="middle" fill="#e7edf3" font-size="14" font-weight="700">Deployment</text>
+          <text x="140" y="76" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">khai báo: image, replicas</text>
+
+          <!-- ReplicaSet -->
+          <rect x="340" y="30" width="200" height="60" rx="10" fill="#161d27" stroke="#5fa8ee" stroke-width="1.5"/>
+          <text x="440" y="58" text-anchor="middle" fill="#e7edf3" font-size="14" font-weight="700">ReplicaSet</text>
+          <text x="440" y="76" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">đảm bảo đủ số Pod</text>
+
+          <!-- Pods -->
+          <rect x="640" y="20" width="150" height="50" rx="10" fill="#161d27" stroke="#c792ea" stroke-width="1.5"/>
+          <text x="715" y="50" text-anchor="middle" fill="#e7edf3" font-size="13" font-weight="700">Pod #1</text>
+
+          <rect x="640" y="85" width="150" height="50" rx="10" fill="#161d27" stroke="#c792ea" stroke-width="1.5"/>
+          <text x="715" y="115" text-anchor="middle" fill="#e7edf3" font-size="13" font-weight="700">Pod #2</text>
+
+          <rect x="640" y="150" width="150" height="50" rx="10" fill="#161d27" stroke="#c792ea" stroke-width="1.5" stroke-dasharray="5 3"/>
+          <text x="715" y="180" text-anchor="middle" fill="#8ea3b8" font-size="13" font-weight="700">Pod #N</text>
+
+          <!-- Containers in pod -->
+          <rect x="870" y="20" width="200" height="50" rx="8" fill="#11171f" stroke="#233140"/>
+          <text x="970" y="40" text-anchor="middle" fill="#e7edf3" font-size="11" font-weight="700">Container: app</text>
+          <text x="970" y="58" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">+ sidecar (tuỳ chọn)</text>
+
+          <!-- arrows -->
+          <line x1="240" y1="60" x2="340" y2="60" stroke="#4fd1c5" stroke-width="2" marker-end="url(#arrow)"/>
+          <line x1="540" y1="55" x2="640" y2="45" stroke="#4fd1c5" stroke-width="2" marker-end="url(#arrow)"/>
+          <line x1="540" y1="60" x2="640" y2="110" stroke="#4fd1c5" stroke-width="2" marker-end="url(#arrow)"/>
+          <line x1="540" y1="65" x2="640" y2="175" stroke="#4fd1c5" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="4 3"/>
+          <line x1="790" y1="45" x2="870" y2="45" stroke="#4fd1c5" stroke-width="2" marker-end="url(#arrow)"/>
+
+          <text x="140" y="115" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">"create"</text>
+          <text x="440" y="115" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">"manage"</text>
+          <text x="715" y="245" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">"chạy"</text>
+
+          <!-- Service overlay -->
+          <rect x="640" y="240" width="430" height="60" rx="10" fill="#161d27" stroke="#7ddc8c" stroke-width="1.5"/>
+          <text x="855" y="268" text-anchor="middle" fill="#e7edf3" font-size="14" font-weight="700">Service (ClusterIP)</text>
+          <text x="855" y="286" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">Load-balance traffic qua nhãn (label selector) tới các Pod</text>
+
+          <line x1="715" y1="200" x2="715" y2="240" stroke="#7ddc8c" stroke-width="2" marker-end="url(#arrow)"/>
+          <line x1="715" y1="135" x2="730" y2="240" stroke="#7ddc8c" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="4 3"/>
+        </svg>
+        <div class="caption">
+          <strong>Deployment → ReplicaSet → Pod → Container</strong> là chuỗi "ownership" — mỗi cấp tạo và quản lý cấp dưới qua
+          <code>ownerReferences</code>. <strong>Service</strong> không nằm trong chuỗi này mà "trỏ" tới Pod bằng label selector,
+          tách rời địa chỉ mạng khỏi vòng đời Pod (Pod chết đi sống lại, Service vẫn giữ địa chỉ ổn định).
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. CONTROL PLANE -->
+    <section id="cp-overview">
+      <h2><span class="num">03</span>Control Plane — Phân tích chi tiết</h2>
+      <p class="section-sub">
+        Control Plane gồm 4 thành phần lõi (+ 1 tuỳ chọn). Chúng đều là <strong>stateless</strong> (trừ etcd) và
+        chỉ giao tiếp với etcd <em>thông qua</em> API Server — không bao giờ truy cập etcd trực tiếp.
+      </p>
+
+      <div class="diagram">
+        <div class="diagram-title">Sơ đồ 3 — Luồng dữ liệu nội bộ Control Plane</div>
+        <svg viewBox="0 0 1100 480" xmlns="http://www.w3.org/2000/svg">
+          <!-- etcd center -->
+          <ellipse cx="550" cy="240" rx="120" ry="70" fill="#161d27" stroke="#5fa8ee" stroke-width="2"/>
+          <text x="550" y="232" text-anchor="middle" fill="#e7edf3" font-size="16" font-weight="800">etcd</text>
+          <text x="550" y="252" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">Raft consensus</text>
+          <text x="550" y="268" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">3/5/7 node odd-quorum</text>
+
+          <!-- API server center-top -->
+          <rect x="430" y="60" width="240" height="80" rx="12" fill="#161d27" stroke="#4fd1c5" stroke-width="2.5"/>
+          <text x="550" y="92" text-anchor="middle" fill="#e7edf3" font-size="16" font-weight="800">kube-apiserver</text>
+          <text x="550" y="112" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">REST + Watch API</text>
+          <text x="550" y="128" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">AuthN → AuthZ → Admission</text>
+
+          <line x1="550" y1="140" x2="550" y2="170" stroke="#4fd1c5" stroke-width="3" marker-end="url(#arrow)"/>
+          <text x="610" y="160" fill="#4fd1c5" font-size="11" font-family="JetBrains Mono">write (gRPC)</text>
+
+          <!-- Scheduler left -->
+          <rect x="60" y="220" width="220" height="80" rx="12" fill="#161d27" stroke="#233140" stroke-width="1.5"/>
+          <text x="170" y="252" text-anchor="middle" fill="#e7edf3" font-size="15" font-weight="700">kube-scheduler</text>
+          <text x="170" y="272" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">watch: Pod chưa có Node</text>
+          <text x="170" y="288" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">→ bind Pod vào Node</text>
+
+          <line x1="280" y1="245" x2="430" y2="160" stroke="#7ddc8c" stroke-width="2" marker-end="url(#arrowGreen)"/>
+          <text x="320" y="190" fill="#7ddc8c" font-size="10" font-family="JetBrains Mono">WATCH unscheduled Pods</text>
+          <line x1="430" y1="180" x2="280" y2="270" stroke="#f0a868" stroke-width="2" marker-end="url(#arrowOrange)"/>
+          <text x="320" y="245" fill="#f0a868" font-size="10" font-family="JetBrains Mono">bind PodSpec.nodeName</text>
+
+          <!-- Controller Manager right -->
+          <rect x="820" y="220" width="220" height="80" rx="12" fill="#161d27" stroke="#233140" stroke-width="1.5"/>
+          <text x="930" y="252" text-anchor="middle" fill="#e7edf3" font-size="15" font-weight="700">controller-manager</text>
+          <text x="930" y="272" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">watch: desired vs actual</text>
+          <text x="930" y="288" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">→ reconcile (tạo/sửa/xoá)</text>
+
+          <line x1="820" y1="245" x2="670" y2="160" stroke="#7ddc8c" stroke-width="2" marker-end="url(#arrowGreen)"/>
+          <text x="700" y="190" fill="#7ddc8c" font-size="10" font-family="JetBrains Mono">WATCH events</text>
+          <line x1="670" y1="180" x2="820" y2="270" stroke="#f0a868" stroke-width="2" marker-end="url(#arrowOrange)"/>
+          <text x="730" y="245" fill="#f0a868" font-size="10" font-family="JetBrains Mono">write objects</text>
+
+          <!-- Kubelets bottom -->
+          <rect x="60" y="380" width="980" height="70" rx="12" fill="#11171f" stroke="#f0a868" stroke-width="1.5" stroke-dasharray="6 4"/>
+          <text x="550" y="410" text-anchor="middle" fill="#f0a868" font-size="14" font-weight="700">kubelet (mỗi Worker Node)</text>
+          <text x="550" y="430" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">Watch Pod được gán cho Node mình → chạy container → ghi Status ngược lại API Server</text>
+
+          <line x1="550" y1="380" x2="550" y2="310" stroke="#4fd1c5" stroke-width="3" marker-end="url(#arrow)"/>
+          <text x="610" y="345" fill="#4fd1c5" font-size="11" font-family="JetBrains Mono">read (gRPC)</text>
+
+          <!-- legend pos -->
+          <text x="550" y="475" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">Tất cả mũi tên đi qua hoặc đi từ API Server — không có "đường tắt"</text>
+        </svg>
+        <div class="legend">
+          <span><span class="sw" style="background:#4fd1c5"></span> kube-apiserver — cổng vào/ra duy nhất</span>
+          <span><span class="sw" style="background:#7ddc8c"></span> Watch (long-poll, push khi có thay đổi)</span>
+          <span><span class="sw" style="background:#f0a868"></span> Write (tạo/cập nhật object)</span>
+        </div>
+      </div>
+
+      <h3 id="apiserver"><span class="dot">3.1</span> kube-apiserver — "Cổng giao tiếp duy nhất"</h3>
+      <p>
+        API Server là một <strong>HTTP REST server stateless</strong>, expose toàn bộ API Kubernetes (Pods, Services, ConfigMaps...).
+        Mọi request đi qua 3 giai đoạn tuần tự:
+      </p>
+      <div class="steps">
+        <div class="step">
+          <div class="idx">1</div>
+          <div class="body"><h5>Authentication (AuthN)</h5>
+          <p>Xác định "ai đang gọi" — qua client certificate, bearer token (ServiceAccount), OIDC token...</p></div>
+        </div>
+        <div class="step">
+          <div class="idx">2</div>
+          <div class="body"><h5>Authorization (AuthZ)</h5>
+          <p>Xác định "người này có quyền làm hành động này không" — chủ yếu qua <strong>RBAC</strong> (Role/ClusterRole + Binding).</p></div>
+        </div>
+        <div class="step">
+          <div class="idx">3</div>
+          <div class="body"><h5>Admission Control</h5>
+          <p>Chuỗi plugin chạy <em>trước khi</em> object được lưu: <strong>Mutating</strong> (tự thêm/sửa field, vd inject sidecar)
+          rồi <strong>Validating</strong> (chấp nhận hoặc từ chối, vd OPA Gatekeeper, PodSecurity).</p></div>
+        </div>
+      </div>
+      <p>
+        Sau khi qua cả 3 lớp, object được serialize và ghi vào <code>etcd</code> qua gRPC. API Server cũng duy trì
+        <strong>watch cache</strong> trong RAM để phục vụ các client watch (scheduler, controller, kubelet) mà không tạo
+        áp lực trực tiếp lên etcd cho mỗi lần đọc.
+      </p>
+
+      <h3 id="etcd"><span class="dot">3.2</span> etcd — Nguồn sự thật duy nhất</h3>
+      <p>
+        etcd là <strong>distributed key-value store</strong> dùng thuật toán đồng thuận <strong>Raft</strong>.
+        Toàn bộ trạng thái cluster — từ Pod, Node, Secret đến ConfigMap — được lưu dưới dạng key dạng:
+      </p>
+      <p><code>/registry/{resource}/{namespace}/{name}</code> — ví dụ <code>/registry/pods/default/my-app-7f9c</code></p>
+      <ul>
+        <li><strong>Số node lẻ</strong> (3, 5, 7) để đảm bảo quorum khi bầu leader, tránh split-brain.</li>
+        <li>Mọi write phải được <strong>majority</strong> node xác nhận (commit) mới trả thành công.</li>
+        <li>Đây là thành phần <strong>duy nhất stateful</strong> trong Control Plane — backup etcd = backup toàn bộ cluster.</li>
+      </ul>
+
+      <h3 id="scheduler"><span class="dot">3.3</span> kube-scheduler — Bộ chọn Node</h3>
+      <p>
+        Scheduler chỉ làm một việc: với mỗi Pod mới có <code>spec.nodeName == ""</code>, nó chọn Node phù hợp nhất rồi
+        ghi <code>nodeName</code> vào Pod (gọi là <em>binding</em>). Quá trình chọn gồm 2 pha:
+      </p>
+      <div class="grid cols-2">
+        <div class="card">
+          <h4><span class="chip">Filtering</span> (Predicates)</h4>
+          <p>Loại các Node KHÔNG đủ điều kiện: thiếu CPU/RAM, không khớp <code>nodeSelector</code>/Affinity,
+          Taint không được Toleration chấp nhận, port conflict...</p>
+        </div>
+        <div class="card">
+          <h4><span class="chip">Scoring</span> (Priorities)</h4>
+          <p>Chấm điểm các Node còn lại: ưu tiên Node ít tải hơn (spread), gần dữ liệu hơn (affinity),
+          tổng điểm cao nhất thắng.</p>
+        </div>
+      </div>
+
+      <h3 id="controller"><span class="dot">3.4</span> kube-controller-manager — Tập hợp Controller</h3>
+      <p>
+        Đây không phải 1 tiến trình logic mà là <strong>vỏ bọc chạy chung nhiều controller</strong> trong cùng 1 binary,
+        mỗi controller chạy một <strong>reconciliation loop</strong> độc lập:
+      </p>
+      <table>
+        <tr><th>Controller</th><th>Trách nhiệm</th></tr>
+        <tr><td>Node Controller</td><td>Theo dõi heartbeat Node, đánh dấu <code>NotReady</code> / evict Pod khi Node chết</td></tr>
+        <tr><td>ReplicaSet Controller</td><td>Đảm bảo số Pod thực tế = <code>spec.replicas</code></td></tr>
+        <tr><td>Deployment Controller</td><td>Quản lý rolling update giữa các ReplicaSet</td></tr>
+        <tr><td>Endpoint/EndpointSlice Controller</td><td>Cập nhật danh sách IP Pod backing cho mỗi Service</td></tr>
+        <tr><td>Namespace Controller</td><td>Dọn dẹp resource khi Namespace bị xoá</td></tr>
+        <tr><td>ServiceAccount/Token Controller</td><td>Tạo ServiceAccount mặc định + token cho Namespace mới</td></tr>
+      </table>
+    </section>
+
+    <!-- 4. NODE -->
+    <section id="node-overview">
+      <h2><span class="num">04</span>Worker Node — Phân tích chi tiết</h2>
+      <p class="section-sub">
+        Mỗi Worker Node chạy 3 tiến trình lõi giao tiếp với nhau qua các giao diện chuẩn hoá
+        (<strong>CRI</strong>, <strong>CNI</strong>, <strong>CSI</strong>) — đây là lý do Kubernetes có thể "cắm" nhiều
+        runtime/network plugin/storage khác nhau mà không sửa code lõi.
+      </p>
+
+      <div class="diagram">
+        <div class="diagram-title">Sơ đồ 4 — Nội bộ một Worker Node</div>
+        <svg viewBox="0 0 1100 560" xmlns="http://www.w3.org/2000/svg">
+          <rect x="20" y="20" width="1060" height="520" rx="16" fill="#11171f" stroke="#f0a868" stroke-width="1.5"/>
+          <text x="46" y="52" fill="#f0a868" font-size="14" font-family="JetBrains Mono" letter-spacing="2">WORKER NODE</text>
+
+          <!-- kubelet -->
+          <rect x="50" y="80" width="260" height="120" rx="12" fill="#161d27" stroke="#4fd1c5" stroke-width="2"/>
+          <text x="180" y="112" text-anchor="middle" fill="#e7edf3" font-size="16" font-weight="800">kubelet</text>
+          <text x="180" y="134" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">Watch PodSpec (cho Node này)</text>
+          <text x="180" y="152" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">SyncLoop: desired ↔ actual</text>
+          <text x="180" y="170" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">Probe: liveness/readiness</text>
+          <text x="180" y="188" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">cAdvisor: metrics container</text>
+
+          <!-- CRI -->
+          <rect x="50" y="240" width="260" height="70" rx="10" fill="#161d27" stroke="#233140"/>
+          <text x="180" y="268" text-anchor="middle" fill="#e7edf3" font-size="13" font-weight="700">CRI (Container Runtime Interface)</text>
+          <text x="180" y="288" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">gRPC chuẩn hoá</text>
+
+          <!-- runtime -->
+          <rect x="50" y="340" width="260" height="80" rx="10" fill="#161d27" stroke="#c792ea" stroke-width="1.5"/>
+          <text x="180" y="368" text-anchor="middle" fill="#e7edf3" font-size="13" font-weight="700">containerd / CRI-O</text>
+          <text x="180" y="388" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">pull image → tạo container</text>
+          <text x="180" y="404" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">→ giao cho runc (OCI runtime)</text>
+
+          <line x1="180" y1="200" x2="180" y2="240" stroke="#4fd1c5" stroke-width="2" marker-end="url(#arrow)"/>
+          <line x1="180" y1="310" x2="180" y2="340" stroke="#4fd1c5" stroke-width="2" marker-end="url(#arrow)"/>
+
+          <!-- kube-proxy -->
+          <rect x="380" y="80" width="260" height="120" rx="12" fill="#161d27" stroke="#7ddc8c" stroke-width="2"/>
+          <text x="510" y="112" text-anchor="middle" fill="#e7edf3" font-size="16" font-weight="800">kube-proxy</text>
+          <text x="510" y="134" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">Watch Service + EndpointSlice</text>
+          <text x="510" y="152" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">Sinh rule: iptables / IPVS / nftables</text>
+          <text x="510" y="170" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">→ load-balance traffic tới Pod</text>
+          <text x="510" y="188" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">đúng Node, không cần proxy app</text>
+
+          <!-- CNI -->
+          <rect x="380" y="240" width="260" height="70" rx="10" fill="#161d27" stroke="#233140"/>
+          <text x="510" y="268" text-anchor="middle" fill="#e7edf3" font-size="13" font-weight="700">CNI (Container Network Interface)</text>
+          <text x="510" y="288" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">Cilium / Calico / Flannel...</text>
+
+          <rect x="380" y="340" width="260" height="80" rx="10" fill="#161d27" stroke="#7ddc8c" stroke-width="1.5"/>
+          <text x="510" y="368" text-anchor="middle" fill="#e7edf3" font-size="13" font-weight="700">Pod Network</text>
+          <text x="510" y="388" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">cấp IP cho Pod, route giữa Node</text>
+          <text x="510" y="404" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">veth pair ↔ bridge/overlay</text>
+
+          <line x1="510" y1="200" x2="510" y2="240" stroke="#7ddc8c" stroke-width="2" marker-end="url(#arrowGreen)" stroke-dasharray="4 3"/>
+          <line x1="510" y1="310" x2="510" y2="340" stroke="#7ddc8c" stroke-width="2" marker-end="url(#arrowGreen)"/>
+
+          <!-- kubelet -> CNI dashed -->
+          <line x1="310" y1="270" x2="380" y2="270" stroke="#7ddc8c" stroke-width="2" marker-end="url(#arrowGreen)"/>
+          <text x="345" y="262" text-anchor="middle" fill="#8ea3b8" font-size="9" font-family="JetBrains Mono">setup netns</text>
+
+          <!-- CSI / kubelet -->
+          <rect x="710" y="80" width="260" height="120" rx="12" fill="#161d27" stroke="#c792ea" stroke-width="2"/>
+          <text x="840" y="112" text-anchor="middle" fill="#e7edf3" font-size="16" font-weight="800">CSI Node Plugin</text>
+          <text x="840" y="134" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">Container Storage Interface</text>
+          <text x="840" y="152" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">Mount/format volume</text>
+          <text x="840" y="170" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">EBS / GCE PD / Ceph...</text>
+          <text x="840" y="188" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">vào đúng đường dẫn Pod</text>
+
+          <line x1="310" y1="120" x2="710" y2="120" stroke="#c792ea" stroke-width="2" marker-end="url(#arrowPurple)" stroke-dasharray="4 3"/>
+          <text x="510" y="105" text-anchor="middle" fill="#8ea3b8" font-size="9" font-family="JetBrains Mono">mount volume trước khi start container</text>
+
+          <!-- Pods row -->
+          <rect x="380" y="450" width="590" height="70" rx="12" fill="#161d27" stroke="#233140"/>
+          <text x="675" y="478" text-anchor="middle" fill="#e7edf3" font-size="13" font-weight="700">Pods chạy trên Node (mỗi Pod = 1 network namespace + nhiều container)</text>
+          <text x="675" y="498" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">app container ←(localhost / shared volume)→ sidecar container</text>
+
+          <line x1="180" y1="420" x2="450" y2="450" stroke="#c792ea" stroke-width="2" marker-end="url(#arrowPurple)"/>
+          <line x1="510" y1="420" x2="600" y2="450" stroke="#7ddc8c" stroke-width="2" marker-end="url(#arrowGreen)"/>
+          <line x1="840" y1="200" x2="750" y2="450" stroke="#c792ea" stroke-width="2" marker-end="url(#arrowPurple)" stroke-dasharray="4 3"/>
+        </svg>
+        <div class="legend">
+          <span><span class="sw" style="background:#4fd1c5"></span> Container lifecycle (CRI)</span>
+          <span><span class="sw" style="background:#7ddc8c"></span> Network plumbing (CNI / kube-proxy)</span>
+          <span><span class="sw" style="background:#c792ea"></span> Storage attach (CSI)</span>
+        </div>
+      </div>
+
+      <h3 id="kubelet"><span class="dot">4.1</span> kubelet — Tác nhân chính trên Node</h3>
+      <p>
+        kubelet là tiến trình quan trọng nhất trên Node, hoạt động theo vòng lặp <strong>Sync Loop</strong>:
+        liên tục so sánh <em>danh sách Pod được gán cho Node này</em> (lấy từ API Server) với
+        <em>trạng thái container thực tế</em> (lấy từ Container Runtime qua CRI), rồi thực hiện hành động cần thiết
+        (tạo, xoá, restart container) để hai bên khớp nhau.
+      </p>
+      <ul>
+        <li><strong>PLEG (Pod Lifecycle Event Generator)</strong>: lắng nghe thay đổi container runtime để cập nhật nhanh.</li>
+        <li><strong>Probes</strong>: chạy liveness/readiness/startup probe định kỳ, quyết định restart container hay loại khỏi Service.</li>
+        <li><strong>cAdvisor (built-in)</strong>: thu thập CPU/RAM/disk/network metric của từng container, phục vụ HPA và <code>kubectl top</code>.</li>
+        <li><strong>Static Pods</strong>: đọc manifest từ thư mục local (không qua API Server) — cách Control Plane tự "tự host" chính nó.</li>
+      </ul>
+
+      <h3 id="kube-proxy"><span class="dot">4.2</span> kube-proxy — Triển khai Service ở tầng mạng</h3>
+      <p>
+        kube-proxy <strong>không phải là một proxy theo nghĩa truyền thống</strong> (traffic không đi qua tiến trình này).
+        Nó chỉ <em>theo dõi</em> Service/EndpointSlice và <em>sinh ra rule</em> ở kernel để traffic được điều hướng trực tiếp:
+      </p>
+      <table>
+        <tr><th>Mode</th><th>Cơ chế</th><th>Đặc điểm</th></tr>
+        <tr><td>iptables (default cũ)</td><td>Chuỗi NAT rule, chọn ngẫu nhiên 1 trong N Pod</td><td>O(n) rule lookup — chậm khi nhiều Service</td></tr>
+        <tr><td>IPVS</td><td>Hash table trong kernel, hỗ trợ nhiều thuật toán LB</td><td>O(1) lookup — phù hợp cluster lớn</td></tr>
+        <tr><td>nftables (mới)</td><td>Thay thế iptables, hiệu năng tốt hơn</td><td>Đang dần thành default</td></tr>
+      </table>
+
+      <h3 id="container-runtime"><span class="dot">4.3</span> Container Runtime &amp; CRI</h3>
+      <p>
+        <strong>CRI (Container Runtime Interface)</strong> là gRPC API chuẩn giữa kubelet và runtime, gồm 2 service chính:
+        <code>RuntimeService</code> (quản lý Pod sandbox &amp; container) và <code>ImageService</code> (pull/list image).
+        Runtime phổ biến (<code>containerd</code>, <code>CRI-O</code>) lại gọi <strong>OCI runtime</strong> (<code>runc</code>, <code>gVisor</code>, <code>kata</code>)
+        để tạo namespace, cgroup và thực thi container thật.
+      </p>
+    </section>
+
+    <!-- 5. POD INTERNALS -->
+    <section id="pod-internals">
+      <h2><span class="num">05</span>Pod — Đơn vị triển khai nhỏ nhất</h2>
+      <p class="section-sub">
+        Pod không phải là "1 container" — nó là <strong>nhóm container chia sẻ network namespace và (tuỳ chọn) volume</strong>.
+      </p>
+
+      <div class="diagram">
+        <div class="diagram-title">Sơ đồ 5 — Cấu trúc bên trong một Pod</div>
+        <svg viewBox="0 0 900 360" xmlns="http://www.w3.org/2000/svg">
+          <rect x="40" y="30" width="820" height="300" rx="16" fill="#11171f" stroke="#c792ea" stroke-width="2"/>
+          <text x="70" y="62" fill="#c792ea" font-size="14" font-family="JetBrains Mono" letter-spacing="2">POD — 1 Network Namespace + Cgroup chung</text>
+
+          <!-- pause container -->
+          <rect x="70" y="90" width="180" height="80" rx="10" fill="#161d27" stroke="#5fa8ee" stroke-width="1.5"/>
+          <text x="160" y="120" text-anchor="middle" fill="#e7edf3" font-size="13" font-weight="700">pause container</text>
+          <text x="160" y="140" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">"infra container"</text>
+          <text x="160" y="156" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">giữ network namespace</text>
+
+          <!-- init container -->
+          <rect x="290" y="90" width="180" height="80" rx="10" fill="#161d27" stroke="#f0a868" stroke-width="1.5"/>
+          <text x="380" y="120" text-anchor="middle" fill="#e7edf3" font-size="13" font-weight="700">Init Container(s)</text>
+          <text x="380" y="140" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">chạy tuần tự, xong rồi exit</text>
+          <text x="380" y="156" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">vd: chờ DB sẵn sàng</text>
+
+          <!-- app container -->
+          <rect x="510" y="90" width="180" height="80" rx="10" fill="#161d27" stroke="#7ddc8c" stroke-width="1.5"/>
+          <text x="600" y="120" text-anchor="middle" fill="#e7edf3" font-size="13" font-weight="700">App Container</text>
+          <text x="600" y="140" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">main process</text>
+          <text x="600" y="156" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">vd: web server</text>
+
+          <!-- sidecar -->
+          <rect x="510" y="190" width="180" height="80" rx="10" fill="#161d27" stroke="#7ddc8c" stroke-width="1.5" stroke-dasharray="5 3"/>
+          <text x="600" y="220" text-anchor="middle" fill="#e7edf3" font-size="13" font-weight="700">Sidecar Container</text>
+          <text x="600" y="240" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">vd: log shipper,</text>
+          <text x="600" y="256" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">service-mesh proxy</text>
+
+          <!-- shared network -->
+          <rect x="70" y="220" width="400" height="80" rx="10" fill="#161d27" stroke="#233140"/>
+          <text x="270" y="248" text-anchor="middle" fill="#e7edf3" font-size="13" font-weight="700">eth0 — 1 IP duy nhất cho cả Pod</text>
+          <text x="270" y="268" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">App ↔ Sidecar giao tiếp qua localhost:port</text>
+          <text x="270" y="286" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">+ Volume chung (emptyDir, ConfigMap...)</text>
+
+          <!-- connections -->
+          <line x1="160" y1="170" x2="270" y2="220" stroke="#5fa8ee" stroke-width="2" marker-end="url(#arrowBlue)"/>
+          <line x1="380" y1="170" x2="270" y2="220" stroke="#f0a868" stroke-width="2" marker-end="url(#arrow)"/>
+          <line x1="600" y1="170" x2="470" y2="240" stroke="#7ddc8c" stroke-width="2" marker-end="url(#arrowGreen)"/>
+          <line x1="600" y1="190" x2="600" y2="170" stroke="#7ddc8c" stroke-width="2" marker-end="url(#arrowGreen)" stroke-dasharray="3 3"/>
+        </svg>
+        <div class="caption">
+          Tất cả container trong Pod <strong>dùng chung 1 địa chỉ IP</strong> (do "pause container" giữ network namespace),
+          nên 2 container không thể cùng lắng nghe 1 port. <strong>Init Container</strong> chạy lần lượt và phải hoàn tất
+          trước khi App Container bắt đầu — dùng để chuẩn bị môi trường (chờ dependency, clone config...).
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. SCHEDULING FLOW -->
+    <section id="scheduling-flow">
+      <h2><span class="num">06</span>Luồng đầy đủ: từ <code>kubectl apply</code> đến container chạy</h2>
+      <p class="section-sub">
+        Đây là sơ đồ "xương sống" — tổng hợp tất cả thành phần trên thành một luồng request/response thực tế.
+      </p>
+
+      <div class="diagram">
+        <div class="diagram-title">Sơ đồ 6 — Sequence: Tạo một Pod từ đầu đến cuối</div>
+        <svg viewBox="0 0 1100 620" xmlns="http://www.w3.org/2000/svg">
+          <!-- lifelines -->
+          <g font-family="JetBrains Mono" font-size="12" fill="#8ea3b8">
+            <text x="80" y="30" text-anchor="middle">kubectl</text>
+            <text x="280" y="30" text-anchor="middle">apiserver</text>
+            <text x="460" y="30" text-anchor="middle">etcd</text>
+            <text x="640" y="30" text-anchor="middle">scheduler</text>
+            <text x="820" y="30" text-anchor="middle">controller-mgr</text>
+            <text x="1000" y="30" text-anchor="middle">kubelet+CRI</text>
+          </g>
+          <g stroke="#233140" stroke-width="1.5">
+            <line x1="80" y1="45" x2="80" y2="600"/>
+            <line x1="280" y1="45" x2="280" y2="600"/>
+            <line x1="460" y1="45" x2="460" y2="600"/>
+            <line x1="640" y1="45" x2="640" y2="600"/>
+            <line x1="820" y1="45" x2="820" y2="600"/>
+            <line x1="1000" y1="45" x2="1000" y2="600"/>
+          </g>
+
+          <!-- step 1 -->
+          <line x1="80" y1="70" x2="280" y2="70" stroke="#4fd1c5" stroke-width="2" marker-end="url(#arrow)"/>
+          <text x="180" y="62" text-anchor="middle" fill="#e7edf3" font-size="11">1. POST /pods (Deployment YAML)</text>
+
+          <!-- step 2 auth -->
+          <rect x="250" y="90" width="60" height="34" rx="6" fill="#161d27" stroke="#4fd1c5"/>
+          <text x="280" y="111" text-anchor="middle" fill="#e7edf3" font-size="10">AuthN/Z</text>
+          <text x="280" y="138" text-anchor="middle" fill="#8ea3b8" font-size="10">+ Admission (mutate/validate)</text>
+
+          <!-- step 3 write etcd -->
+          <line x1="280" y1="160" x2="460" y2="160" stroke="#f0a868" stroke-width="2" marker-end="url(#arrowOrange)"/>
+          <text x="370" y="152" text-anchor="middle" fill="#e7edf3" font-size="11">2. Ghi Deployment object</text>
+
+          <!-- step 4 controller watch -->
+          <line x1="460" y1="190" x2="820" y2="190" stroke="#7ddc8c" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="4 3"/>
+          <text x="640" y="182" text-anchor="middle" fill="#e7edf3" font-size="11">3. Watch event → Deployment created</text>
+
+          <!-- step 5 controller creates RS+Pod -->
+          <line x1="820" y1="220" x2="280" y2="220" stroke="#f0a868" stroke-width="2" marker-end="url(#arrowOrange)"/>
+          <text x="550" y="212" text-anchor="middle" fill="#e7edf3" font-size="11">4. Tạo ReplicaSet → tạo Pod (nodeName="")</text>
+          <line x1="280" y1="250" x2="460" y2="250" stroke="#f0a868" stroke-width="2" marker-end="url(#arrowOrange)"/>
+          <text x="370" y="242" text-anchor="middle" fill="#e7edf3" font-size="11">5. Ghi Pod object vào etcd</text>
+
+          <!-- step 6 scheduler watch -->
+          <line x1="460" y1="280" x2="640" y2="280" stroke="#7ddc8c" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="4 3"/>
+          <text x="550" y="272" text-anchor="middle" fill="#e7edf3" font-size="11">6. Watch: Pod chưa có nodeName</text>
+
+          <!-- step 7 scheduler decides -->
+          <rect x="610" y="300" width="60" height="60" rx="6" fill="#161d27" stroke="#7ddc8c"/>
+          <text x="640" y="320" text-anchor="middle" fill="#e7edf3" font-size="10">Filter</text>
+          <text x="640" y="335" text-anchor="middle" fill="#e7edf3" font-size="10">+ Score</text>
+          <text x="640" y="350" text-anchor="middle" fill="#e7edf3" font-size="10">Nodes</text>
+
+          <!-- step 8 scheduler binds -->
+          <line x1="640" y1="380" x2="280" y2="380" stroke="#f0a868" stroke-width="2" marker-end="url(#arrowOrange)"/>
+          <text x="460" y="372" text-anchor="middle" fill="#e7edf3" font-size="11">7. Bind: Pod.spec.nodeName = "node-2"</text>
+          <line x1="280" y1="410" x2="460" y2="410" stroke="#f0a868" stroke-width="2" marker-end="url(#arrowOrange)"/>
+          <text x="370" y="402" text-anchor="middle" fill="#e7edf3" font-size="11">8. Update Pod trong etcd</text>
+
+          <!-- step 9 kubelet watch -->
+          <line x1="460" y1="440" x2="1000" y2="440" stroke="#7ddc8c" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="4 3"/>
+          <text x="730" y="432" text-anchor="middle" fill="#e7edf3" font-size="11">9. kubelet(node-2) watch thấy Pod gán cho mình</text>
+
+          <!-- step 10 -->
+          <rect x="970" y="460" width="60" height="60" rx="6" fill="#161d27" stroke="#c792ea"/>
+          <text x="1000" y="480" text-anchor="middle" fill="#e7edf3" font-size="9">CRI: pull</text>
+          <text x="1000" y="493" text-anchor="middle" fill="#e7edf3" font-size="9">image, run</text>
+          <text x="1000" y="506" text-anchor="middle" fill="#e7edf3" font-size="9">container</text>
+
+          <!-- step 11 status update -->
+          <line x1="1000" y1="540" x2="280" y2="540" stroke="#4fd1c5" stroke-width="2" marker-end="url(#arrow)"/>
+          <text x="640" y="532" text-anchor="middle" fill="#e7edf3" font-size="11">10. PATCH Pod.status = Running (heartbeat)</text>
+          <line x1="280" y1="570" x2="460" y2="570" stroke="#f0a868" stroke-width="2" marker-end="url(#arrowOrange)"/>
+          <text x="370" y="562" text-anchor="middle" fill="#e7edf3" font-size="11">11. Lưu Status mới vào etcd</text>
+        </svg>
+      </div>
+
+      <p>
+        Điểm mấu chốt: <strong>không có thành phần nào "gọi trực tiếp" thành phần khác</strong>. Mọi giao tiếp đều theo mô hình
+        <strong>watch-based eventual consistency</strong> qua API Server — đây là lý do Kubernetes chịu lỗi tốt
+        (một controller crash và restart sẽ tự "đọc lại" toàn bộ trạng thái rồi tiếp tục).
+      </p>
+    </section>
+
+    <!-- 7. NETWORKING -->
+    <section id="networking">
+      <h2><span class="num">07</span>Mô hình Network — 4 nguyên tắc nền tảng</h2>
+      <div class="grid cols-2">
+        <div class="card net">
+          <h4><span class="chip">#1</span> Mọi Pod có 1 IP riêng (flat)</h4>
+          <p>Mỗi Pod nhận 1 IP từ dải IP của cluster — không NAT giữa Pod, dù chúng nằm trên Node khác nhau.</p>
+        </div>
+        <div class="card net">
+          <h4><span class="chip">#2</span> Pod thấy IP của mình giống bên ngoài thấy</h4>
+          <p>Không có "translation" địa chỉ ở tầng Pod — đơn giản hoá rất nhiều cho service discovery.</p>
+        </div>
+        <div class="card net">
+          <h4><span class="chip">#3</span> Node giao tiếp được mọi Pod</h4>
+          <p>kubelet/healthcheck trên Node bất kỳ có thể reach Pod ở Node khác (qua route do CNI thiết lập).</p>
+        </div>
+        <div class="card net">
+          <h4><span class="chip">#4</span> Container trong cùng Pod chia sẻ network</h4>
+          <p>Như đã thấy ở Sơ đồ 5 — giao tiếp qua <code>localhost</code>, không qua NAT.</p>
+        </div>
+      </div>
+
+      <div class="diagram">
+        <div class="diagram-title">Sơ đồ 7 — Traffic giữa Pod trên 2 Node khác nhau (CNI overlay)</div>
+        <svg viewBox="0 0 1000 380" xmlns="http://www.w3.org/2000/svg">
+          <!-- Node A -->
+          <rect x="40" y="40" width="420" height="300" rx="14" fill="#11171f" stroke="#f0a868" stroke-width="1.5"/>
+          <text x="60" y="68" fill="#f0a868" font-size="13" font-family="JetBrains Mono">Node A — 10.0.1.0/24</text>
+
+          <rect x="70" y="90" width="160" height="60" rx="8" fill="#161d27" stroke="#c792ea"/>
+          <text x="150" y="115" text-anchor="middle" fill="#e7edf3" font-size="12" font-weight="700">Pod A</text>
+          <text x="150" y="133" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">IP: 10.0.1.5</text>
+
+          <rect x="70" y="190" width="360" height="50" rx="8" fill="#161d27" stroke="#233140"/>
+          <text x="250" y="220" text-anchor="middle" fill="#e7edf3" font-size="12" font-family="JetBrains Mono">veth0 ↔ cni0 bridge (10.0.1.1)</text>
+
+          <rect x="70" y="270" width="360" height="50" rx="8" fill="#161d27" stroke="#233140"/>
+          <text x="250" y="300" text-anchor="middle" fill="#e7edf3" font-size="12" font-family="JetBrains Mono">eth0 (Node) — 192.168.1.10</text>
+
+          <line x1="150" y1="150" x2="150" y2="190" stroke="#7ddc8c" stroke-width="2" marker-end="url(#arrowGreen)"/>
+          <line x1="250" y1="240" x2="250" y2="270" stroke="#7ddc8c" stroke-width="2" marker-end="url(#arrowGreen)"/>
+
+          <!-- Node B -->
+          <rect x="540" y="40" width="420" height="300" rx="14" fill="#11171f" stroke="#f0a868" stroke-width="1.5"/>
+          <text x="560" y="68" fill="#f0a868" font-size="13" font-family="JetBrains Mono">Node B — 10.0.2.0/24</text>
+
+          <rect x="770" y="90" width="160" height="60" rx="8" fill="#161d27" stroke="#c792ea"/>
+          <text x="850" y="115" text-anchor="middle" fill="#e7edf3" font-size="12" font-weight="700">Pod B</text>
+          <text x="850" y="133" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">IP: 10.0.2.7</text>
+
+          <rect x="570" y="190" width="360" height="50" rx="8" fill="#161d27" stroke="#233140"/>
+          <text x="750" y="220" text-anchor="middle" fill="#e7edf3" font-size="12" font-family="JetBrains Mono">veth0 ↔ cni0 bridge (10.0.2.1)</text>
+
+          <rect x="570" y="270" width="360" height="50" rx="8" fill="#161d27" stroke="#233140"/>
+          <text x="750" y="300" text-anchor="middle" fill="#e7edf3" font-size="12" font-family="JetBrains Mono">eth0 (Node) — 192.168.1.20</text>
+
+          <line x1="850" y1="150" x2="850" y2="190" stroke="#7ddc8c" stroke-width="2" marker-end="url(#arrowGreen)"/>
+          <line x1="750" y1="240" x2="750" y2="270" stroke="#7ddc8c" stroke-width="2" marker-end="url(#arrowGreen)"/>
+
+          <!-- cross link -->
+          <line x1="250" y1="295" x2="750" y2="295" stroke="#4fd1c5" stroke-width="2.5" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+          <text x="500" y="365" text-anchor="middle" fill="#4fd1c5" font-size="11" font-family="JetBrains Mono">Traffic 10.0.1.5 → 10.0.2.7: encapsulate (VXLAN/Geneve) hoặc route trực tiếp (BGP) tuỳ CNI</text>
+        </svg>
+        <div class="caption">
+          Tuỳ CNI plugin: <strong>overlay network</strong> (Flannel VXLAN) đóng gói packet gốc trong UDP để vượt qua hạ tầng vật lý,
+          hoặc <strong>routed network</strong> (Calico BGP, Cilium native routing) quảng bá route Pod CIDR trực tiếp —
+          nhanh hơn nhưng yêu cầu hạ tầng hỗ trợ.
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. SERVICE -->
+    <section id="service">
+      <h2><span class="num">08</span>Service &amp; DNS — Service Discovery</h2>
+      <p class="section-sub">
+        Pod là "phù du" (ephemeral) — IP thay đổi mỗi khi Pod restart. <strong>Service</strong> giải quyết bài toán này
+        bằng cách cung cấp 1 <strong>VIP (Virtual IP) ổn định</strong> + DNS name, rồi load-balance tới Pod hiện tại.
+      </p>
+
+      <div class="diagram">
+        <div class="diagram-title">Sơ đồ 8 — Service ClusterIP hoạt động như thế nào</div>
+        <svg viewBox="0 0 1000 360" xmlns="http://www.w3.org/2000/svg">
+          <!-- client pod -->
+          <rect x="40" y="140" width="160" height="70" rx="10" fill="#161d27" stroke="#c792ea" stroke-width="1.5"/>
+          <text x="120" y="170" text-anchor="middle" fill="#e7edf3" font-size="13" font-weight="700">Client Pod</text>
+          <text x="120" y="190" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">curl my-svc:80</text>
+
+          <!-- DNS -->
+          <rect x="280" y="40" width="180" height="70" rx="10" fill="#161d27" stroke="#5fa8ee" stroke-width="1.5"/>
+          <text x="370" y="70" text-anchor="middle" fill="#e7edf3" font-size="13" font-weight="700">CoreDNS</text>
+          <text x="370" y="90" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">my-svc.ns.svc.cluster.local</text>
+          <text x="370" y="104" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">→ ClusterIP 10.96.0.50</text>
+
+          <line x1="200" y1="155" x2="280" y2="100" stroke="#5fa8ee" stroke-width="2" marker-end="url(#arrowBlue)"/>
+          <text x="245" y="115" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">1. DNS lookup</text>
+
+          <!-- Service VIP -->
+          <rect x="280" y="140" width="180" height="70" rx="10" fill="#161d27" stroke="#7ddc8c" stroke-width="1.5"/>
+          <text x="370" y="170" text-anchor="middle" fill="#e7edf3" font-size="13" font-weight="700">Service VIP</text>
+          <text x="370" y="190" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">10.96.0.50:80</text>
+
+          <line x1="200" y1="175" x2="280" y2="175" stroke="#7ddc8c" stroke-width="2" marker-end="url(#arrowGreen)"/>
+          <text x="240" y="195" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">2. connect VIP</text>
+
+          <!-- kube-proxy rules -->
+          <rect x="280" y="240" width="180" height="70" rx="10" fill="#161d27" stroke="#f0a868" stroke-width="1.5"/>
+          <text x="370" y="270" text-anchor="middle" fill="#e7edf3" font-size="13" font-weight="700">kube-proxy rules</text>
+          <text x="370" y="290" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">iptables/IPVS DNAT</text>
+
+          <line x1="370" y1="210" x2="370" y2="240" stroke="#f0a868" stroke-width="2" marker-end="url(#arrowOrange)"/>
+          <text x="430" y="230" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">3. intercept ở kernel</text>
+
+          <!-- Endpoint pods -->
+          <rect x="560" y="60" width="170" height="60" rx="10" fill="#161d27" stroke="#c792ea" stroke-width="1.5"/>
+          <text x="645" y="86" text-anchor="middle" fill="#e7edf3" font-size="12" font-weight="700">Pod 10.0.1.5</text>
+          <text x="645" y="104" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">role=backend ✓</text>
+
+          <rect x="560" y="150" width="170" height="60" rx="10" fill="#161d27" stroke="#c792ea" stroke-width="1.5"/>
+          <text x="645" y="176" text-anchor="middle" fill="#e7edf3" font-size="12" font-weight="700">Pod 10.0.2.7</text>
+          <text x="645" y="194" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">role=backend ✓</text>
+
+          <rect x="560" y="240" width="170" height="60" rx="10" fill="#161d27" stroke="#f47174" stroke-width="1.5" stroke-dasharray="5 3"/>
+          <text x="645" y="266" text-anchor="middle" fill="#e7edf3" font-size="12" font-weight="700">Pod 10.0.3.9</text>
+          <text x="645" y="284" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">readiness=false ✗ (loại)</text>
+
+          <line x1="460" y1="265" x2="560" y2="90" stroke="#4fd1c5" stroke-width="2" marker-end="url(#arrow)"/>
+          <line x1="460" y1="275" x2="560" y2="180" stroke="#4fd1c5" stroke-width="2" marker-end="url(#arrow)"/>
+          <text x="500" y="155" fill="#4fd1c5" font-size="10" font-family="JetBrains Mono">4. DNAT tới 1 trong các Pod IP (EndpointSlice)</text>
+
+          <!-- selector box -->
+          <rect x="760" y="320" width="200" height="30" rx="6" fill="none" stroke="#233140" stroke-dasharray="3 3"/>
+          <text x="860" y="340" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">selector: role=backend</text>
+        </svg>
+        <div class="caption">
+          <strong>EndpointSlice Controller</strong> liên tục đồng bộ danh sách IP của các Pod khớp <code>selector</code>
+          <em>và</em> đang <code>Ready</code> (qua readiness probe). kube-proxy nhận danh sách này và cập nhật rule kernel —
+          do đó việc "loại Pod lỗi khỏi Load Balancer" xảy ra <strong>tự động</strong>, không cần can thiệp.
+        </div>
+      </div>
+
+      <table>
+        <tr><th>Loại Service</th><th>Phạm vi truy cập</th><th>Cách hoạt động</th></tr>
+        <tr><td>ClusterIP</td><td>Nội bộ cluster</td><td>VIP chỉ route được trong cluster</td></tr>
+        <tr><td>NodePort</td><td>Bên ngoài, qua IP:Node-Port</td><td>Mở port cố định (30000-32767) trên MỌI Node</td></tr>
+        <tr><td>LoadBalancer</td><td>Internet</td><td>cloud-controller-manager tạo LB của Cloud Provider, trỏ vào NodePort</td></tr>
+        <tr><td>ExternalName</td><td>—</td><td>CNAME DNS, không tạo VIP, chỉ ánh xạ tên</td></tr>
+      </table>
+    </section>
+
+    <!-- 9. STORAGE -->
+    <section id="storage">
+      <h2><span class="num">09</span>Storage — PV / PVC / StorageClass / CSI</h2>
+      <div class="diagram">
+        <div class="diagram-title">Sơ đồ 9 — Dynamic Provisioning với CSI</div>
+        <svg viewBox="0 0 1000 260" xmlns="http://www.w3.org/2000/svg">
+          <rect x="40" y="90" width="180" height="70" rx="10" fill="#161d27" stroke="#c792ea" stroke-width="1.5"/>
+          <text x="130" y="120" text-anchor="middle" fill="#e7edf3" font-size="13" font-weight="700">Pod</text>
+          <text x="130" y="140" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">volumeMounts: data</text>
+
+          <rect x="280" y="90" width="180" height="70" rx="10" fill="#161d27" stroke="#5fa8ee" stroke-width="1.5"/>
+          <text x="370" y="120" text-anchor="middle" fill="#e7edf3" font-size="13" font-weight="700">PVC</text>
+          <text x="370" y="140" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">"tôi cần 10Gi, SSD"</text>
+
+          <rect x="280" y="10" width="180" height="50" rx="10" fill="#161d27" stroke="#233140"/>
+          <text x="370" y="40" text-anchor="middle" fill="#e7edf3" font-size="12" font-family="JetBrains Mono">StorageClass: fast-ssd</text>
+
+          <rect x="520" y="90" width="180" height="70" rx="10" fill="#161d27" stroke="#7ddc8c" stroke-width="1.5"/>
+          <text x="610" y="120" text-anchor="middle" fill="#e7edf3" font-size="13" font-weight="700">PV (provisioned)</text>
+          <text x="610" y="140" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">10Gi @ disk-xyz</text>
+
+          <rect x="760" y="90" width="200" height="70" rx="10" fill="#161d27" stroke="#f0a868" stroke-width="1.5"/>
+          <text x="860" y="120" text-anchor="middle" fill="#e7edf3" font-size="13" font-weight="700">CSI Driver</text>
+          <text x="860" y="140" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">tạo disk thật ở Cloud/Storage</text>
+
+          <line x1="220" y1="125" x2="280" y2="125" stroke="#4fd1c5" stroke-width="2" marker-end="url(#arrow)"/>
+          <line x1="370" y1="90" x2="370" y2="60" stroke="#4fd1c5" stroke-width="2" marker-end="url(#arrow)"/>
+          <line x1="460" y1="125" x2="520" y2="125" stroke="#f0a868" stroke-width="2" marker-end="url(#arrowOrange)"/>
+          <line x1="700" y1="125" x2="760" y2="125" stroke="#f0a868" stroke-width="2" marker-end="url(#arrowOrange)"/>
+
+          <text x="370" y="200" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">1. Pod request volume qua PVC → 2. PVC tham chiếu StorageClass</text>
+          <text x="610" y="220" text-anchor="middle" fill="#8ea3b8" font-size="11" font-family="JetBrains Mono">3. external-provisioner gọi CSI Driver tạo ổ đĩa → bind PV ↔ PVC → mount vào Pod</text>
+        </svg>
+      </div>
+      <ul>
+        <li><strong>PV (PersistentVolume)</strong>: đại diện 1 ổ đĩa thật (vòng đời độc lập với Pod).</li>
+        <li><strong>PVC (PersistentVolumeClaim)</strong>: "đơn yêu cầu" của Pod — khai báo dung lượng/loại cần.</li>
+        <li><strong>StorageClass</strong>: template định nghĩa <em>cách</em> tạo PV (provisioner nào, loại disk nào).</li>
+        <li><strong>CSI</strong>: chuẩn plugin để Kubernetes nói chuyện với mọi hệ thống storage mà không cần code cứng vào core.</li>
+      </ul>
+    </section>
+
+    <!-- 10. RECONCILIATION -->
+    <section id="reconcile">
+      <h2><span class="num">10</span>Reconciliation Loop — Triết lý lõi của Kubernetes</h2>
+      <p class="section-sub">
+        Mọi controller trong Kubernetes (built-in hoặc Custom Controller/Operator) đều theo cùng 1 khuôn mẫu vô hạn:
+      </p>
+
+      <div class="diagram">
+        <div class="diagram-title">Sơ đồ 10 — Control Loop tổng quát</div>
+        <svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="400" cy="200" r="160" fill="none" stroke="#233140" stroke-width="1.5" stroke-dasharray="6 4"/>
+
+          <rect x="320" y="40" width="160" height="60" rx="10" fill="#161d27" stroke="#5fa8ee" stroke-width="1.5"/>
+          <text x="400" y="65" text-anchor="middle" fill="#e7edf3" font-size="13" font-weight="700">Observe</text>
+          <text x="400" y="83" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">Watch state hiện tại</text>
+
+          <rect x="540" y="160" width="160" height="60" rx="10" fill="#161d27" stroke="#f0a868" stroke-width="1.5"/>
+          <text x="620" y="185" text-anchor="middle" fill="#e7edf3" font-size="13" font-weight="700">Diff</text>
+          <text x="620" y="203" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">So sánh Desired vs Actual</text>
+
+          <rect x="320" y="290" width="160" height="60" rx="10" fill="#161d27" stroke="#7ddc8c" stroke-width="1.5"/>
+          <text x="400" y="315" text-anchor="middle" fill="#e7edf3" font-size="13" font-weight="700">Act</text>
+          <text x="400" y="333" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">Tạo/sửa/xoá object qua API</text>
+
+          <rect x="100" y="160" width="160" height="60" rx="10" fill="#161d27" stroke="#c792ea" stroke-width="1.5"/>
+          <text x="180" y="185" text-anchor="middle" fill="#e7edf3" font-size="13" font-weight="700">Wait / Requeue</text>
+          <text x="180" y="203" text-anchor="middle" fill="#8ea3b8" font-size="10" font-family="JetBrains Mono">Nếu khớp → ngủ tới event tiếp</text>
+
+          <path d="M460 80 Q560 110 600 160" fill="none" stroke="#4fd1c5" stroke-width="2" marker-end="url(#arrow)"/>
+          <path d="M600 220 Q540 280 460 305" fill="none" stroke="#4fd1c5" stroke-width="2" marker-end="url(#arrow)"/>
+          <path d="M320 320 Q220 290 180 220" fill="none" stroke="#4fd1c5" stroke-width="2" marker-end="url(#arrow)"/>
+          <path d="M180 160 Q220 90 320 65" fill="none" stroke="#4fd1c5" stroke-width="2" marker-end="url(#arrow)"/>
+
+          <text x="400" y="200" text-anchor="middle" fill="#233140" font-size="13" font-family="JetBrains Mono">∞ loop</text>
+        </svg>
+        <div class="caption">
+          <strong>Observe → Diff → Act → Wait</strong> — vòng lặp này chạy <em>vô hạn</em> và <em>độc lập với event ban đầu</em>.
+          Nếu một admin sửa tay 1 Pod (vd xoá), controller sẽ <em>không hỏi tại sao</em> — nó chỉ thấy
+          <code>actual != desired</code> và tạo lại Pod mới. Đây chính là nguồn gốc của tính
+          <strong>self-healing</strong> trong Kubernetes.
+        </div>
+      </div>
+
+      <h3>Tổng kết các tầng kiến trúc</h3>
+      <table>
+        <tr><th>Tầng</th><th>Thành phần chính</th><th>Vai trò cốt lõi</th></tr>
+        <tr><td>API / State</td><td>kube-apiserver, etcd</td><td>Cổng vào duy nhất + nguồn sự thật</td></tr>
+        <tr><td>Control Logic</td><td>scheduler, controller-manager</td><td>Quyết định &amp; reconcile</td></tr>
+        <tr><td>Node Agent</td><td>kubelet, kube-proxy</td><td>Thực thi trên từng máy</td></tr>
+        <tr><td>Runtime Interfaces</td><td>CRI, CNI, CSI</td><td>Chuẩn hoá plugin (container/network/storage)</td></tr>
+        <tr><td>Workload</td><td>Pod, Deployment, Service</td><td>Mô hình ứng dụng &amp; service discovery</td></tr>
+      </table>
+    </section>
+
+    <footer>
+      // Kubernetes Architecture Deep-Dive · Tổng hợp các sơ đồ minh hoạ luồng dữ liệu thực tế giữa các thành phần
+    </footer>
+
+  </main>
+</div>
+</body>
+</html>
