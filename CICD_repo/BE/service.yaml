@@ -3,11 +3,14 @@ kind: Service
 metadata:
   name: backend-svc
   namespace: fullstack-namespace
+  labels:
+    app: backend
 spec:
   type: ClusterIP
   selector:
     app: backend
   ports:
-    - protocol: TCP
-      port: 8080        # Cổng của Service
-      targetPort: 8080  # Trỏ vào cổng 8080 của Container ở trên
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: 8080

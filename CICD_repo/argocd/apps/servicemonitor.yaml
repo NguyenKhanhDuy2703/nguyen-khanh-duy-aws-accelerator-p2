@@ -1,12 +1,17 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: api-monitor
+  name: backend-monitor
   namespace: fullstack-namespace
+  labels:
+    release: kube-prometheus-stack
 spec:
+  namespaceSelector:
+    matchNames:
+      - fullstack-namespace
   selector:
     matchLabels:
-      app: api
+      app: backend
   endpoints:
     - port: http
       path: /metrics

@@ -13,7 +13,14 @@ spec:
       values: |
         prometheus:
           prometheusSpec:
+            serviceMonitorSelector:
+              matchLabels:
+                release: kube-prometheus-stack
             serviceMonitorSelectorNilUsesHelmValues: false
+            serviceMonitorNamespaceSelector:
+              matchNames:
+                - monitoring
+                - fullstack-namespace
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
@@ -24,5 +31,3 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
-# file: argocd/apps/argo-rollouts.yaml — y hệt, đổi:
-#   chart: argo-rollouts ; targetRevision: 2.37.7 ; namespace: argo-rollouts
