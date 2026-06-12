@@ -21,8 +21,9 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Install yq
         run: |
-          sudo apt-get update
-          sudo apt-get install -y yq
+          wget https://github.com/mikefarah/yq/releases/download/v4.35.1/yq_linux_amd64 -O /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
+        shell: bash
       - name: Build and Push FE
         run: |
           docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest -t ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }} ./CICD_repo/FE
@@ -30,8 +31,7 @@ jobs:
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}
       - name: Update FE manifest
         run: |
-          # Dùng yq (cần cài đặt sudo apt-get install -y yq)
-          yq -i '.spec.template.spec.containers[0].image = "${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}"' ./CICD_repo/FE/deployment.yaml
+          yq eval -i '.spec.template.spec.containers[0].image = "${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}"' ./CICD_repo/FE/deployment.yaml
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
           git add ./CICD_repo/FE/deployment.yaml
@@ -50,8 +50,9 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Install yq
         run: |
-          sudo apt-get update
-          sudo apt-get install -y yq
+          wget https://github.com/mikefarah/yq/releases/download/v4.35.1/yq_linux_amd64 -O /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
+        shell: bash
       - name: Build and Push BE
         run: |
           docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest -t ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }} ./CICD_repo/BE
@@ -59,9 +60,9 @@ jobs:
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }}
       - name: Update BE manifest
         run: |
-          yq -i '.spec.template.spec.containers[0].image = "${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }}"' ./CICD_repo/BE/deployment.yaml
+          yq eval -i '.spec.template.spec.containers[0].image = "${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }}"' ./CICD_repo/BE/rollout.yaml
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
-          git add ./CICD_repo/BE/deployment.yaml
+          git add ./CICD_repo/BE/rollout.yaml
           git commit -m "Update BE image to ${{ github.sha }}"
           git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} main
