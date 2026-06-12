@@ -5,10 +5,9 @@ metadata:
   namespace: fullstack-namespace
   labels:
     release: kube-prometheus-stack
+    app: backend
+    prometheus: kube-prometheus-stack
 spec:
-  namespaceSelector:
-    matchNames:
-      - fullstack-namespace
   selector:
     matchLabels:
       app: backend
@@ -16,3 +15,4 @@ spec:
     - port: http
       path: /metrics
       interval: 15s
+      scheme: http
