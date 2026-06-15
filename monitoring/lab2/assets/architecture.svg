@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 450">
+  <defs>
+    <style>
+      .box { fill: #fff; stroke: #232F3E; stroke-width: 2; }
+      .title { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; fill: #232F3E; }
+      .subtitle { font-family: Arial, sans-serif; font-size: 11px; fill: #545B64; }
+      .arrow { stroke: #D13212; stroke-width: 2.5; fill: none; marker-end: url(#arrowhead); }
+      .cloudtrail { fill: #759C3E; }
+      .logs { fill: #B0084D; }
+      .sns { fill: #D9317C; }
+      .warning { fill: #FF9900; stroke: #D13212; stroke-width: 3; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#D13212" />
+    </marker>
+  </defs>
+  
+  <text x="450" y="25" text-anchor="middle" class="title" font-size="18" fill="#D13212">🚨 Root Account Login Monitoring Architecture</text>
+  
+  <rect x="50" y="70" width="160" height="100" class="box warning" rx="5"/>
+  <text x="130" y="95" text-anchor="middle" class="title" fill="#D13212" font-size="16">⚠️ ROOT LOGIN</text>
+  <text x="130" y="115" text-anchor="middle" class="subtitle">AWS Console</text>
+  <text x="130" y="135" text-anchor="middle" class="subtitle" font-size="10">userIdentity.type</text>
+  <text x="130" y="150" text-anchor="middle" class="subtitle" font-size="10">= "Root"</text>
+  
+  <rect x="270" y="70" width="160" height="100" class="box cloudtrail" rx="5"/>
+  <text x="350" y="95" text-anchor="middle" class="title" fill="#fff">CloudTrail</text>
+  <text x="350" y="115" text-anchor="middle" class="subtitle" fill="#fff">API Call Logging</text>
+  <text x="350" y="135" text-anchor="middle" class="subtitle" fill="#fff">ConsoleLogin Event</text>
+  <text x="350" y="150" text-anchor="middle" class="subtitle" fill="#fff">→ S3 + CloudWatch</text>
+  
+  <rect x="490" y="70" width="160" height="100" class="box logs" rx="5"/>
+  <text x="570" y="95" text-anchor="middle" class="title" fill="#fff">CloudWatch Logs</text>
+  <text x="570" y="115" text-anchor="middle" class="subtitle" fill="#fff">Log Group:</text>
+  <text x="570" y="130" text-anchor="middle" class="subtitle" fill="#fff" font-size="9">/aws/cloudtrail/</text>
+  <text x="570" y="145" text-anchor="middle" class="subtitle" fill="#fff" font-size="9">root-account-monitoring</text>
+  
+  <rect x="710" y="70" width="160" height="100" class="box logs" rx="5"/>
+  <text x="790" y="95" text-anchor="middle" class="title" fill="#fff">Metric Filter</text>
+  <text x="790" y="115" text-anchor="middle" class="subtitle" fill="#fff">Pattern:</text>
+  <text x="790" y="130" text-anchor="middle" class="subtitle" fill="#fff" font-size="9">$.userIdentity.type</text>
+  <text x="790" y="145" text-anchor="middle" class="subtitle" fill="#fff" font-size="9">= "Root"</text>
+  
+  <path d="M 210 120 L 270 120" class="arrow"/>
+  <text x="240" y="110" text-anchor="middle" class="subtitle" font-size="10" fill="#D13212">API call</text>
+  
+  <path d="M 430 120 L 490 120" class="arrow"/>
+  <text x="460" y="110" text-anchor="middle" class="subtitle" font-size="10" fill="#D13212">logs</text>
+  
+  <path d="M 650 120 L 710 120" class="arrow"/>
+  <text x="680" y="110" text-anchor="middle" class="subtitle" font-size="10" fill="#D13212">events</text>
+  
+  <rect x="270" y="250" width="160" height="100" class="box" fill="#F4F6F8" rx="5"/>
+  <text x="350" y="275" text-anchor="middle" class="title">S3 Bucket</text>
+  <text x="350" y="295" text-anchor="middle" class="subtitle">CloudTrail Logs</text>
+  <text x="350" y="315" text-anchor="middle" class="subtitle" font-size="10">Long-term storage</text>
+  <text x="350" y="330" text-anchor="middle" class="subtitle" font-size="10">(backup only)</text>
+  
+  <path d="M 350 170 L 350 250" class="arrow" stroke="#759C3E"/>
+  <text x="380" y="215" class="subtitle" font-size="10" fill="#759C3E">backup</text>
+  
+  <rect x="490" y="250" width="160" height="100" class="box logs" rx="5"/>
+  <text x="570" y="275" text-anchor="middle" class="title" fill="#fff">CloudWatch Alarm</text>
+  <text x="570" y="295" text-anchor="middle" class="subtitle" fill="#fff">Metric:</text>
+  <text x="570" y="310" text-anchor="middle" class="subtitle" fill="#fff" font-size="10">RootAccountLoginCount</text>
+  <text x="570" y="330" text-anchor="middle" class="subtitle" fill="#fff">Threshold: >= 1</text>
+  
+  <path d="M 790 170 L 790 210 L 570 210 L 570 250" class="arrow"/>
+  <text x="680" y="205" text-anchor="middle" class="subtitle" font-size="10" fill="#D13212">count++</text>
+  
+  <rect x="710" y="250" width="160" height="100" class="box sns" rx="5"/>
+  <text x="790" y="275" text-anchor="middle" class="title" fill="#fff">SNS Topic</text>
+  <text x="790" y="295" text-anchor="middle" class="subtitle" fill="#fff">root-account-</text>
+  <text x="790" y="310" text-anchor="middle" class="subtitle" fill="#fff">login-alert</text>
+  <text x="790" y="330" text-anchor="middle" class="subtitle" fill="#fff">Protocol: Email</text>
+  
+  <path d="M 650 300 L 710 300" class="arrow"/>
+  <text x="680" y="290" text-anchor="middle" class="subtitle" font-size="10" fill="#D13212">trigger</text>
+  
+  <rect x="360" y="380" width="180" height="50" class="box warning" rx="5"/>
+  <text x="450" y="405" text-anchor="middle" class="title" font-size="13" fill="#D13212">📧 Security Team Alert</text>
+  <text x="450" y="423" text-anchor="middle" class="subtitle" font-size="11">🚨 CRITICAL: Root login detected!</text>
+  
+  <path d="M 790 350 L 790 405 L 540 405" class="arrow"/>
+  <text x="665" y="395" text-anchor="middle" class="subtitle" font-size="10" fill="#D13212">email</text>
+</svg>
