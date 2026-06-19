@@ -1,0 +1,25 @@
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
+*.tfstate.lock.info
+terraform.tfvars
+*.auto.tfvars
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Keep tfvars template but not actual values
+!terraform.tfvars.example
+
+# Test data — these contain fake sensitive data for Macie testing only
+# Comment out if you want to commit test data
+# test-data/
+
+# OS
+.DS_Store
+Thumbs.db

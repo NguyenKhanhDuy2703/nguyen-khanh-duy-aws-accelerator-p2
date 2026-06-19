@@ -1,0 +1,102 @@
+{
+  "_comment": "Sample Macie Finding Event — as sent by EventBridge to SNS",
+  "_use": "Use this to test EventBridge rule pattern matching manually via AWS Console or CLI",
+
+  "version": "0",
+  "id": "abc12345-6789-def0-1234-abcdef012345",
+  "source": "aws.macie",
+  "account": "123456789012",
+  "time": "2024-01-15T14:32:07Z",
+  "region": "us-east-1",
+  "detail-type": "Macie Finding",
+  "detail": {
+    "schemaVersion": "1.0",
+    "id": "abc12345-6789-def0-1234-abcdef012345",
+    "accountId": "123456789012",
+    "partition": "aws",
+    "region": "us-east-1",
+    "type": "SensitiveData:S3Object/Credentials",
+    "title": "The S3 object contains AWS credentials.",
+    "description": "The object contains credentials, such as AWS secret access keys or private keys, that provide access to AWS resources.",
+    "createdAt": "2024-01-15T14:32:07Z",
+    "updatedAt": "2024-01-15T14:32:07Z",
+    "severity": {
+      "score": 9,
+      "description": "High"
+    },
+    "count": 1,
+    "resourcesAffected": {
+      "s3Bucket": {
+        "name": "capstone-w10-macie-target-yourname",
+        "arn": "arn:aws:s3:::capstone-w10-macie-target-yourname",
+        "createdAt": "2024-01-15T10:00:00Z",
+        "owner": {
+          "displayName": "capstone-w10",
+          "id": "abc123def456"
+        },
+        "tags": [
+          { "key": "Owner", "value": "capstone-w10" },
+          { "key": "Env",   "value": "dev" }
+        ]
+      },
+      "s3Object": {
+        "bucketArn": "arn:aws:s3:::capstone-w10-macie-target-yourname",
+        "key": "test-data/credentials-sample.txt",
+        "path": "capstone-w10-macie-target-yourname/test-data/credentials-sample.txt",
+        "etag": "d41d8cd98f00b204e9800998ecf8427e",
+        "lastModified": "2024-01-15T12:00:00Z",
+        "size": 1456,
+        "storageClass": "STANDARD",
+        "serverSideEncryption": {
+          "encryptionType": "AES256"
+        }
+      }
+    },
+    "classificationDetails": {
+      "jobArn": "arn:aws:macie2:us-east-1:123456789012:classification-job/abc123",
+      "result": {
+        "status": {
+          "code": "COMPLETE"
+        },
+        "sizeClassified": 1456,
+        "sensitiveData": [
+          {
+            "category": "CREDENTIALS",
+            "totalCount": 5,
+            "detections": [
+              {
+                "type": "AWS_CREDENTIALS",
+                "count": 2,
+                "occurrences": {
+                  "lineRanges": [
+                    { "start": 12, "end": 13, "startColumn": 1 },
+                    { "start": 14, "end": 15, "startColumn": 1 }
+                  ]
+                }
+              },
+              {
+                "type": "GITHUB_PERSONAL_ACCESS_TOKEN",
+                "count": 1,
+                "occurrences": {
+                  "lineRanges": [
+                    { "start": 30, "end": 30, "startColumn": 1 }
+                  ]
+                }
+              },
+              {
+                "type": "API_KEY",
+                "count": 2,
+                "occurrences": {
+                  "lineRanges": [
+                    { "start": 22, "end": 22, "startColumn": 1 },
+                    { "start": 25, "end": 25, "startColumn": 1 }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

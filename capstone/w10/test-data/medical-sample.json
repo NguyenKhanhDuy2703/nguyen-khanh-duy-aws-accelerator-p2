@@ -1,0 +1,67 @@
+{
+  "hospital": "General Medical Center",
+  "export_date": "2024-01-15",
+  "patients": [
+    {
+      "patient_id": "P-001",
+      "name": "John Smith",
+      "date_of_birth": "1985-03-15",
+      "ssn": "123-45-6789",
+      "health_insurance_id": "HI-987654321",
+      "diagnosis": "Type 2 Diabetes Mellitus (E11.9)",
+      "icd_code": "E11.9",
+      "medications": ["Metformin 500mg", "Lisinopril 10mg"],
+      "physician": "Dr. Sarah Johnson",
+      "last_visit": "2024-01-10",
+      "phone": "555-123-4567",
+      "email": "john.smith@example.com",
+      "address": "123 Main St, New York, NY 10001",
+      "emergency_contact": {
+        "name": "Mary Smith",
+        "relation": "Spouse",
+        "phone": "555-987-6543"
+      }
+    },
+    {
+      "patient_id": "P-002",
+      "name": "Jane Doe",
+      "date_of_birth": "1990-07-22",
+      "ssn": "987-65-4321",
+      "health_insurance_id": "HI-123456789",
+      "diagnosis": "Major Depressive Disorder (F32.1)",
+      "icd_code": "F32.1",
+      "medications": ["Sertraline 50mg"],
+      "physician": "Dr. Michael Chen",
+      "last_visit": "2024-01-12",
+      "phone": "555-234-5678",
+      "email": "jane.doe@example.com",
+      "address": "456 Oak Ave, Los Angeles, CA 90001",
+      "emergency_contact": {
+        "name": "Bob Doe",
+        "relation": "Father",
+        "phone": "555-345-6789"
+      }
+    },
+    {
+      "patient_id": "P-003",
+      "name": "Robert Johnson",
+      "date_of_birth": "1978-11-08",
+      "ssn": "456-78-9012",
+      "health_insurance_id": "HI-246813579",
+      "diagnosis": "Hypertension (I10)",
+      "icd_code": "I10",
+      "medications": ["Amlodipine 5mg", "Atorvastatin 20mg"],
+      "physician": "Dr. Lisa Park",
+      "last_visit": "2024-01-08",
+      "phone": "555-456-7890",
+      "email": "robert.j@example.com",
+      "address": "789 Pine Rd, Chicago, IL 60601",
+      "credit_card": "4532015112830366",
+      "emergency_contact": {
+        "name": "Susan Johnson",
+        "relation": "Sister",
+        "phone": "555-567-8901"
+      }
+    }
+  ]
+}

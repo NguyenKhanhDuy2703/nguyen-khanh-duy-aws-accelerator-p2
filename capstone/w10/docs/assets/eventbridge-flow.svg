@@ -1,0 +1,128 @@
+<svg viewBox="0 0 880 500" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="880" height="500" fill="#0f1923" rx="16"/>
+
+  <!-- Title -->
+  <text x="440" y="36" text-anchor="middle" fill="#ffffff" font-size="16" font-weight="700">EventBridge Event Flow — Macie Finding to Email</text>
+  <text x="440" y="55" text-anchor="middle" fill="#8899aa" font-size="11">Two routing rules: All Findings · High Severity Only</text>
+
+  <!-- ══ MACIE FINDING EVENT ══ -->
+  <rect x="30" y="80" width="200" height="170" rx="10" fill="#1c2b3a" stroke="#ff6d00" stroke-width="2"/>
+  <text x="130" y="102" text-anchor="middle" fill="#ff8c42" font-size="11" font-weight="700">Macie Finding Event</text>
+  <text x="130" y="118" text-anchor="middle" fill="#5a6a7a" font-size="9">source: "aws.macie"</text>
+  <!-- JSON snippet -->
+  <rect x="40" y="124" width="180" height="115" rx="6" fill="#0a1520"/>
+  <text x="50" y="140" fill="#ce93d8" font-size="8">{</text>
+  <text x="58" y="153" fill="#4a9eff" font-size="8">"source": </text><text x="110" y="153" fill="#81c995" font-size="8">"aws.macie"</text>
+  <text x="58" y="165" fill="#4a9eff" font-size="8">"detail-type": </text><text x="122" y="165" fill="#81c995" font-size="8">"Macie Finding"</text>
+  <text x="58" y="177" fill="#4a9eff" font-size="8">"detail": {</text>
+  <text x="68" y="189" fill="#8899aa" font-size="8">"type": "SensitiveData:..."</text>
+  <text x="68" y="201" fill="#8899aa" font-size="8">"severity": { "description":</text>
+  <text x="78" y="211" fill="#ea4335" font-size="8">"High" }</text>
+  <text x="68" y="221" fill="#8899aa" font-size="8">"resourcesAffected": {...}</text>
+  <text x="58" y="231" fill="#4a9eff" font-size="8">}</text>
+  <text x="50" y="233" fill="#ce93d8" font-size="8">}</text>
+
+  <!-- Arrow from Macie to EventBridge bus -->
+  <line x1="232" y1="165" x2="290" y2="165" stroke="#9c27b0" stroke-width="2" stroke-dasharray="5,3"/>
+  <polygon points="290,161 300,165 290,169" fill="#9c27b0"/>
+  <text x="261" y="158" text-anchor="middle" fill="#ce93d8" font-size="9">event bus</text>
+
+  <!-- ══ EVENTBRIDGE BUS ══ -->
+  <rect x="300" y="120" width="120" height="90" rx="10" fill="#1c2b3a" stroke="#9c27b0" stroke-width="2"/>
+  <text x="360" y="148" text-anchor="middle" fill="#ce93d8" font-size="11" font-weight="700">EventBridge</text>
+  <text x="360" y="163" text-anchor="middle" fill="#8899aa" font-size="9">Default Bus</text>
+  <!-- Bus lines -->
+  <line x1="315" y1="175" x2="405" y2="175" stroke="#9c27b0" stroke-width="1.5" opacity="0.5"/>
+  <line x1="315" y1="183" x2="405" y2="183" stroke="#9c27b0" stroke-width="1.5" opacity="0.5"/>
+  <line x1="315" y1="191" x2="405" y2="191" stroke="#9c27b0" stroke-width="1.5" opacity="0.5"/>
+
+  <!-- ══ RULE 1 — ALL FINDINGS ══ -->
+  <!-- Arrow from bus to Rule 1 -->
+  <line x1="422" y1="148" x2="478" y2="148" stroke="#fbbc04" stroke-width="2"/>
+  <polygon points="478,144 488,148 478,152" fill="#fbbc04"/>
+  <text x="453" y="141" text-anchor="middle" fill="#fbbc04" font-size="9">Rule 1</text>
+
+  <rect x="490" y="80" width="180" height="140" rx="10" fill="#1c2b3a" stroke="#fbbc04" stroke-width="2"/>
+  <text x="580" y="101" text-anchor="middle" fill="#fbbc04" font-size="10" font-weight="700">Rule: All Findings</text>
+  <!-- Pattern box -->
+  <rect x="500" y="108" width="160" height="65" rx="5" fill="#0a1520"/>
+  <text x="510" y="122" fill="#5a6a7a" font-size="8">event_pattern:</text>
+  <text x="518" y="134" fill="#ce93d8" font-size="8">{</text>
+  <text x="526" y="145" fill="#4a9eff" font-size="8">"source":</text>
+  <text x="570" y="145" fill="#81c995" font-size="8">["aws.macie"]</text>
+  <text x="526" y="156" fill="#4a9eff" font-size="8">"detail-type":</text>
+  <text x="578" y="156" fill="#81c995" font-size="8">["Macie Finding"]</text>
+  <text x="518" y="167" fill="#ce93d8" font-size="8">}</text>
+  <text x="580" y="194" text-anchor="middle" fill="#8899aa" font-size="9">Matches ALL severities</text>
+  <text x="580" y="208" text-anchor="middle" fill="#8899aa" font-size="9">Low · Medium · High</text>
+
+  <!-- ══ RULE 2 — HIGH SEVERITY ══ -->
+  <!-- Arrow from bus to Rule 2 -->
+  <line x1="422" y1="185" x2="478" y2="260" stroke="#ea4335" stroke-width="2"/>
+  <polygon points="474,258 488,263 476,267" fill="#ea4335"/>
+  <text x="445" y="228" text-anchor="middle" fill="#ea4335" font-size="9">Rule 2</text>
+
+  <rect x="490" y="250" width="180" height="150" rx="10" fill="#1c2b3a" stroke="#ea4335" stroke-width="2"/>
+  <text x="580" y="271" text-anchor="middle" fill="#ea4335" font-size="10" font-weight="700">Rule: High Severity</text>
+  <!-- Pattern box -->
+  <rect x="500" y="278" width="160" height="90" rx="5" fill="#0a1520"/>
+  <text x="510" y="292" fill="#5a6a7a" font-size="8">event_pattern:</text>
+  <text x="518" y="303" fill="#ce93d8" font-size="8">{</text>
+  <text x="526" y="314" fill="#4a9eff" font-size="8">"source": ["aws.macie"]</text>
+  <text x="526" y="325" fill="#4a9eff" font-size="8">"detail": {</text>
+  <text x="534" y="336" fill="#4a9eff" font-size="8">"severity": {</text>
+  <text x="542" y="347" fill="#ea4335" font-size="8">"description": ["High"]</text>
+  <text x="534" y="358" fill="#4a9eff" font-size="8">} } }</text>
+  <text x="580" y="387" text-anchor="middle" fill="#8899aa" font-size="9">Only HIGH severity</text>
+
+  <!-- ══ INPUT TRANSFORMER ══ -->
+  <!-- Arrow Rule1 to transformer 1 -->
+  <line x1="672" y1="148" x2="720" y2="148" stroke="#fbbc04" stroke-width="2"/>
+  <polygon points="720,144 730,148 720,152" fill="#fbbc04"/>
+
+  <rect x="732" y="80" width="130" height="140" rx="10" fill="#1c2b3a" stroke="#fbbc04" stroke-width="1.5"/>
+  <text x="797" y="101" text-anchor="middle" fill="#fbbc04" font-size="10" font-weight="700">Input Transformer</text>
+  <text x="797" y="115" text-anchor="middle" fill="#8899aa" font-size="8">Extract fields:</text>
+  <rect x="742" y="120" width="110" height="75" rx="4" fill="#0a1520"/>
+  <text x="752" y="134" fill="#8899aa" font-size="7.5">finding_type  → $.detail.type</text>
+  <text x="752" y="146" fill="#8899aa" font-size="7.5">severity      → $.detail.severity</text>
+  <text x="752" y="158" fill="#8899aa" font-size="7.5">bucket_name   → $.resourcesAffected</text>
+  <text x="752" y="170" fill="#8899aa" font-size="7.5">object_key    → $.s3Object.key</text>
+  <text x="752" y="182" fill="#8899aa" font-size="7.5">finding_id    → $.detail.id</text>
+  <text x="752" y="194" fill="#8899aa" font-size="7.5">region        → $.region</text>
+  <text x="797" y="213" text-anchor="middle" fill="#8899aa" font-size="8">→ Readable email body</text>
+
+  <!-- Arrow Rule2 to transformer 2 -->
+  <line x1="672" y1="325" x2="720" y2="325" stroke="#ea4335" stroke-width="2"/>
+  <polygon points="720,321 730,325 720,329" fill="#ea4335"/>
+
+  <rect x="732" y="255" width="130" height="120" rx="10" fill="#1c2b3a" stroke="#ea4335" stroke-width="1.5"/>
+  <text x="797" y="276" text-anchor="middle" fill="#ea4335" font-size="10" font-weight="700">Input Transformer</text>
+  <text x="797" y="290" text-anchor="middle" fill="#8899aa" font-size="8">Subject:</text>
+  <rect x="742" y="296" width="110" height="40" rx="4" fill="#0a1520"/>
+  <text x="752" y="310" fill="#ea4335" font-size="7">🔴 URGENT — HIGH Severity</text>
+  <text x="752" y="322" fill="#8899aa" font-size="7">Macie Finding</text>
+  <text x="797" y="352" text-anchor="middle" fill="#8899aa" font-size="8">Priority alert format</text>
+  <text x="797" y="364" text-anchor="middle" fill="#ea4335" font-size="8">Requires immediate action</text>
+
+  <!-- ══ SNS TARGET ══ -->
+  <rect x="30" y="370" width="220" height="100" rx="10" fill="#1c2b3a" stroke="#e91e63" stroke-width="2"/>
+  <text x="140" y="393" text-anchor="middle" fill="#f48fb1" font-size="12" font-weight="700">📧 Amazon SNS</text>
+  <text x="140" y="410" text-anchor="middle" fill="#8899aa" font-size="10">{owner}-macie-alerts</text>
+  <text x="140" y="428" text-anchor="middle" fill="#8899aa" font-size="9">Protocol: email</text>
+  <text x="140" y="443" text-anchor="middle" fill="#8899aa" font-size="9">Endpoint: notification_email</text>
+  <text x="140" y="460" text-anchor="middle" fill="#34a853" font-size="9">✉ Subscriber confirms via email</text>
+
+  <!-- Arrows from transformers to SNS -->
+  <line x1="732" y1="148" x2="200" y2="370" stroke="#fbbc04" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <polygon points="198,374 202,361 207,372" fill="#fbbc04"/>
+  <line x1="732" y1="325" x2="200" y2="390" stroke="#ea4335" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <polygon points="198,394 203,381 208,392" fill="#ea4335"/>
+
+  <!-- Labels on dashed arrows -->
+  <text x="470" y="290" text-anchor="middle" fill="#fbbc04" font-size="8">publish to SNS topic</text>
+  <text x="470" y="355" text-anchor="middle" fill="#ea4335" font-size="8">publish to SNS topic</text>
+
+  <!-- Footer -->
+  <text x="440" y="488" text-anchor="middle" fill="#3a4a5a" font-size="10">EventBridge routes Macie findings → SNS → Email notification</text>
+</svg>

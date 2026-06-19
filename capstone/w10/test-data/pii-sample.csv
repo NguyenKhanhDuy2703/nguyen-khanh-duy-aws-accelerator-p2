@@ -1,0 +1,11 @@
+id,first_name,last_name,email,phone,ssn,date_of_birth,address
+1,John,Smith,john.smith@example.com,555-123-4567,123-45-6789,1985-03-15,"123 Main St, New York, NY 10001"
+2,Jane,Doe,jane.doe@example.com,555-987-6543,987-65-4321,1990-07-22,"456 Oak Ave, Los Angeles, CA 90001"
+3,Robert,Johnson,robert.j@example.com,555-456-7890,456-78-9012,1978-11-08,"789 Pine Rd, Chicago, IL 60601"
+4,Maria,Garcia,m.garcia@example.com,555-321-6549,321-65-4987,1995-01-30,"321 Elm St, Houston, TX 77001"
+5,David,Williams,d.williams@example.com,555-654-3210,654-32-1098,1982-09-14,"654 Maple Dr, Phoenix, AZ 85001"
+6,Sarah,Brown,s.brown@example.com,555-789-0123,789-01-2345,1988-05-27,"987 Cedar Ln, Philadelphia, PA 19101"
+7,Michael,Davis,m.davis@example.com,555-234-5678,234-56-7890,1975-12-03,"246 Birch Blvd, San Antonio, TX 78201"
+8,Emily,Wilson,e.wilson@example.com,555-876-5432,876-54-3219,1993-08-18,"135 Willow Way, San Diego, CA 92101"
+9,James,Moore,j.moore@example.com,555-567-8901,567-89-0123,1980-02-25,"753 Spruce St, Dallas, TX 75201"
+10,Linda,Taylor,l.taylor@example.com,555-432-1098,432-10-9876,1987-06-11,"864 Ash Ave, San Jose, CA 95101"

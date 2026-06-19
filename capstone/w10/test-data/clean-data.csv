@@ -1,0 +1,11 @@
+product_id,product_name,category,price,stock,description
+P001,Widget A,Electronics,29.99,150,A standard widget with basic features
+P002,Widget B,Electronics,49.99,80,An advanced widget with extra features
+P003,Gadget X,Tools,15.50,300,Compact tool for everyday use
+P004,Gadget Y,Tools,22.00,200,Durable tool built for professionals
+P005,Component Z,Parts,5.75,1000,Generic replacement component
+P006,Device Alpha,Electronics,199.00,45,High performance device
+P007,Device Beta,Electronics,149.00,60,Mid-range device with good value
+P008,Tool Pro,Tools,75.00,120,Professional grade tool
+P009,Part Omega,Parts,3.25,2000,Universal compatible part
+P010,Accessory One,Accessories,12.99,500,Versatile accessory
