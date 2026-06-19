@@ -1,198 +1,238 @@
 # Event Pack — Amazon Macie Sensitive Data Detection
-## Capstone W10 · AWS Security · Test Use Cases
+## Capstone W10 · AWS Security · Terraform IaC
 
 ---
 
-## Architecture
+## 1. Tổng quan
 
-![Architecture Overview](./assets/architecture-overview.svg)
+Đề tài triển khai hệ thống tự động phát hiện sensitive data trong S3 và gửi notification theo luồng:
+
+```
+S3 Bucket (test data)
+      │
+      ▼
+Amazon Macie  ──── Classification Job (ONE_TIME scan)
+      │
+      ▼  Macie Finding Event
+Amazon EventBridge
+      │
+      ├── Rule 1: tất cả findings  ──► SNS Topic ──► Email
+      └── Rule 2: HIGH severity only ──► SNS Topic ──► Email
+```
+
+### Infrastructure được deploy (Terraform)
+
+| Resource | Tên trên AWS | Trạng thái |
+|----------|-------------|-----------|
+| S3 Bucket | `capstone-w10-macie-target-kduy` | ✅ Created |
+| Amazon Macie | Account `743116070379` | ✅ ENABLED |
+| Classification Job | `capstone-w10-sensitive-data-scan` | ✅ RUNNING |
+| EventBridge Rule 1 | `capstone-w10-macie-finding-rule` | ✅ ENABLED |
+| EventBridge Rule 2 | `capstone-w10-macie-finding-high-rule` | ✅ ENABLED |
+| SNS Topic | `capstone-w10-macie-alerts` | ✅ Created |
+| SNS Subscription | `nguyenkhanhduy270304@gmail.com` | ⚠️ PendingConfirmation |
 
 ---
 
-## EventBridge Flow
+## 2. Test Data đã upload lên S3
 
-![EventBridge Flow](./assets/eventbridge-flow.svg)
+4 file test data được upload tự động qua Terraform vào bucket `capstone-w10-macie-target-kduy/test-data/`:
+
+| File | Loại sensitive data | Expected finding type |
+|------|--------------------|-----------------------|
+| `pii-sample.csv` | SSN, tên, email, phone, địa chỉ | `SensitiveData:S3Object/Personal` |
+| `financial-sample.csv` | Credit card, bank account, CVV | `SensitiveData:S3Object/Financial` |
+| `credentials-sample.txt` | AWS keys, API keys, passwords | `SensitiveData:S3Object/Credentials` |
+| `medical-sample.json` | PHI, SSN, ICD codes, prescriptions | `SensitiveData:S3Object/Personal` |
 
 ---
 
-## 1. Event Structure
+## 3. Evidence — Macie Console
 
-Khi Macie phát hiện sensitive data, nó publish một **Macie Finding Event** lên EventBridge.
-File mẫu: [`test-data/sample-finding-event.json`](../test-data/sample-finding-event.json)
+Screenshot dưới đây chụp từ AWS Console sau khi `terraform apply` hoàn thành và chạy lệnh `aws macie2 create-sample-findings`.
+
+![Amazon Macie Findings Console](./assets/amazonMacie.png)
+
+**Kết quả quan sát được:**
+- Macie đã được enable thành công trên account `743116070379`
+- Classification job `capstone-w10-sensitive-data-scan` ở trạng thái `RUNNING`
+- Sample findings được tạo với các loại:
+  - `SensitiveData:S3Object/Personal` — Severity: **Low**
+  - `SensitiveData:S3Object/Financial` — Severity: **High**
+  - `SensitiveData:S3Object/Credentials` — Severity: **High**
+- Tổng cộng **6 findings** xuất hiện trong console
+
+**CLI output xác nhận findings:**
+```
+findingIds:
+  - 1acf6fab-6d0d-9d2d-a0de-54a60bb6b43f  → Personal  | LOW
+  - 66cf6fab-6d0d-931f-3e8f-536dfbdcc788  → Financial | HIGH
+  - 8ccf6fab-6d0d-de51-dbfe-23d85f98c290  → Credentials | HIGH
+  - dba4a8426b9bfd576f90d3706c41d4b1       → (scan result)
+  - 5c97d233e7d37bd03974fce83ae4d231       → (scan result)
+  - f1a3fe0bbab88ecf85c4daac8797a143       → (scan result)
+```
+
+---
+
+## 4. Evidence — SNS Email Subscription
+
+Screenshot dưới đây chụp email confirmation từ AWS SNS gửi đến `nguyenkhanhduy270304@gmail.com`.
+
+![SNS Email Subscription Confirmation](./assets/email_subcription.png)
+
+**Kết quả quan sát được:**
+- AWS SNS đã gửi email confirmation đến địa chỉ đã cấu hình
+- Subject: `AWS Notification - Subscription Confirmation`
+- Sender: `no-reply@sns.amazonaws.com`
+- Topic ARN: `arn:aws:sns:us-east-1:743116070379:capstone-w10-macie-alerts`
+
+> Sau khi click **"Confirm subscription"** trong email, trạng thái subscription sẽ chuyển từ `PendingConfirmation` → `Confirmed` và email alert sẽ được gửi mỗi khi Macie phát hiện finding mới.
+
+---
+
+## 5. Event Structure
+
+Khi Macie phát hiện sensitive data, nó phát sinh event lên EventBridge với cấu trúc:
 
 ```json
 {
   "source": "aws.macie",
   "detail-type": "Macie Finding",
+  "account": "743116070379",
+  "region": "us-east-1",
   "detail": {
     "type": "SensitiveData:S3Object/Credentials",
     "severity": { "description": "High" },
     "resourcesAffected": {
-      "s3Bucket": { "name": "capstone-w10-macie-target-yourname" },
+      "s3Bucket": { "name": "capstone-w10-macie-target-kduy" },
       "s3Object": { "key": "test-data/credentials-sample.txt" }
     }
   }
 }
 ```
 
-### EventBridge Rules được deploy
+### EventBridge Rules
 
-| Rule Name | Pattern | Trigger khi |
-|-----------|---------|------------|
-| `{owner}-macie-finding-rule` | `source: aws.macie` + `detail-type: Macie Finding` | **Tất cả** findings (Low/Med/High) |
-| `{owner}-macie-finding-high-rule` | Thêm filter `severity.description: ["High"]` | Chỉ **HIGH** severity |
+**Rule 1 — All Findings** (`capstone-w10-macie-finding-rule`):
+```json
+{
+  "source": ["aws.macie"],
+  "detail-type": ["Macie Finding"]
+}
+```
+→ Bắt tất cả findings (Low / Medium / High)
+
+**Rule 2 — High Severity Only** (`capstone-w10-macie-finding-high-rule`):
+```json
+{
+  "source": ["aws.macie"],
+  "detail-type": ["Macie Finding"],
+  "detail": {
+    "severity": { "description": ["High"] }
+  }
+}
+```
+→ Chỉ bắt khi severity = **High**, dùng cho urgent alert
+
+### Email được format qua Input Transformer
+
+```
+Subject: 🚨 Amazon Macie Alert — Sensitive Data Detected
+
+Amazon Macie has detected sensitive data in your S3 bucket.
+
+=== Finding Details ===
+Finding Type: SensitiveData:S3Object/Credentials
+Severity:     High
+Account:      743116070379
+Region:       us-east-1
+
+=== Affected Resource ===
+S3 Bucket:    capstone-w10-macie-target-kduy
+Object Key:   test-data/credentials-sample.txt
+
+=== Action Required ===
+https://console.aws.amazon.com/macie/home?region=us-east-1#/findings
+```
 
 ---
 
-## 2. Test Use Cases
+## 6. Test Use Cases
 
-![Test Scenarios](./assets/test-scenarios.svg)
+### TC-01 · PII Detection
 
----
+| | |
+|--|--|
+| **File** | `test-data/pii-sample.csv` |
+| **Sensitive data** | SSN (`123-45-6789`), tên, email, phone, DOB, địa chỉ |
+| **Expected type** | `SensitiveData:S3Object/Personal` |
+| **Expected severity** | HIGH |
+| **Both rules fire** | ✅ Yes |
 
-### TC-01 · PII Detection — CSV File
-
-**Mô tả:** Upload file CSV chứa Personal Identifiable Information (SSN, tên, email, số điện thoại).
-
-**File test:** `test-data/pii-sample.csv`
-
-**Dữ liệu nhạy cảm trong file:**
-- Social Security Numbers (dạng `123-45-6789`)
-- Họ tên đầy đủ + ngày sinh
-- Email + số điện thoại + địa chỉ
-
-**Cách chạy:**
 ```bash
-# Upload file mới vào bucket (trigger scan)
 aws s3 cp test-data/pii-sample.csv \
-  s3://$(terraform -chdir=environments/dev output -raw target_bucket_name)/manual-upload/pii-sample.csv \
-  --region us-east-1
-
-# Hoặc trigger bằng make
-make macie-sample
+  s3://capstone-w10-macie-target-kduy/manual-upload/pii-sample.csv
 ```
-
-**Expected Finding:**
-```
-Type:       SensitiveData:S3Object/Personal
-Severity:   HIGH
-Category:   PERSONAL_INFORMATION
-Identifiers: NAME, ADDRESS, EMAIL_ADDRESS, PHONE_NUMBER, USA_SOCIAL_SECURITY_NUMBER
-```
-
-**Expected Email Subject:**
-```
-🚨 Amazon Macie Alert — Sensitive Data Detected
-```
-
-**Pass Criteria:** ✅ Finding xuất hiện trong Macie console + Email nhận được
 
 ---
 
-### TC-02 · Financial Data — Credit Card Numbers
+### TC-02 · Financial Data
 
-**Mô tả:** Upload file CSV chứa thông tin thẻ tín dụng và tài khoản ngân hàng.
+| | |
+|--|--|
+| **File** | `test-data/financial-sample.csv` |
+| **Sensitive data** | Credit card (Visa/MC/Amex), bank account, routing number, CVV |
+| **Expected type** | `SensitiveData:S3Object/Financial` |
+| **Expected severity** | HIGH |
+| **Both rules fire** | ✅ Yes |
 
-**File test:** `test-data/financial-sample.csv`
-
-**Dữ liệu nhạy cảm trong file:**
-- Credit card numbers (Visa, Mastercard, Amex, Discover)
-- Bank account + routing numbers
-- CVV codes + expiry dates
-
-**Cách chạy:**
 ```bash
 aws s3 cp test-data/financial-sample.csv \
-  s3://$(terraform -chdir=environments/dev output -raw target_bucket_name)/manual-upload/financial-sample.csv \
-  --region us-east-1
+  s3://capstone-w10-macie-target-kduy/manual-upload/financial-sample.csv
 ```
-
-**Expected Finding:**
-```
-Type:       SensitiveData:S3Object/Financial
-Severity:   HIGH
-Category:   FINANCIAL_INFORMATION
-Identifiers: CREDIT_CARD_NUMBER, CREDIT_CARD_EXPIRY, USA_BANK_ACCOUNT_NUMBER
-```
-
-**Pass Criteria:** ✅ Finding xuất hiện + Email nhận được với subject "🚨 Amazon Macie Alert"
 
 ---
 
-### TC-03 · AWS Credentials & API Keys Exposed
+### TC-03 · AWS Credentials Exposed
 
-**Mô tả:** Upload file TXT chứa AWS access keys, API tokens, passwords.  
-Đây là loại finding **nguy hiểm nhất** — credentials có thể bị dùng để compromise AWS account.
+| | |
+|--|--|
+| **File** | `test-data/credentials-sample.txt` |
+| **Sensitive data** | AWS Access Key, Secret Key, API keys, passwords, OAuth tokens |
+| **Expected type** | `SensitiveData:S3Object/Credentials` |
+| **Expected severity** | HIGH |
+| **Both rules fire** | ✅ Yes — 2 emails gửi |
 
-**File test:** `test-data/credentials-sample.txt`
-
-**Dữ liệu nhạy cảm trong file:**
-- AWS Access Key ID + Secret Access Key
-- Stripe, SendGrid, Twilio API keys
-- GitHub OAuth client secrets
-- Database passwords + JWT secrets
-
-**Cách chạy:**
 ```bash
 aws s3 cp test-data/credentials-sample.txt \
-  s3://$(terraform -chdir=environments/dev output -raw target_bucket_name)/manual-upload/credentials-sample.txt \
-  --region us-east-1
+  s3://capstone-w10-macie-target-kduy/manual-upload/credentials-sample.txt
 ```
-
-**Expected Finding:**
-```
-Type:       SensitiveData:S3Object/Credentials
-Severity:   HIGH
-Category:   CREDENTIALS
-Identifiers: AWS_CREDENTIALS, GITHUB_PERSONAL_ACCESS_TOKEN, API_KEY
-```
-
-**Pass Criteria:** ✅ Finding HIGH + **cả 2 EventBridge rules đều fire** + 2 emails nhận được
 
 ---
 
-### TC-04 · Medical PHI — JSON File
+### TC-04 · Medical PHI
 
-**Mô tả:** Upload file JSON chứa Protected Health Information (PHI) — dữ liệu bệnh nhân.
+| | |
+|--|--|
+| **File** | `test-data/medical-sample.json` |
+| **Sensitive data** | SSN bệnh nhân, DOB, ICD codes, prescriptions, insurance ID |
+| **Expected type** | `SensitiveData:S3Object/Personal` |
+| **Expected severity** | HIGH |
+| **Both rules fire** | ✅ Yes |
 
-**File test:** `test-data/medical-sample.json`
-
-**Dữ liệu nhạy cảm trong file:**
-- SSN của bệnh nhân
-- Ngày sinh + địa chỉ
-- ICD diagnosis codes + prescriptions
-- Health insurance IDs
-
-**Cách chạy:**
 ```bash
 aws s3 cp test-data/medical-sample.json \
-  s3://$(terraform -chdir=environments/dev output -raw target_bucket_name)/manual-upload/medical-sample.json \
-  --region us-east-1
+  s3://capstone-w10-macie-target-kduy/manual-upload/medical-sample.json
 ```
-
-**Expected Finding:**
-```
-Type:       SensitiveData:S3Object/Personal
-Severity:   HIGH
-Category:   PERSONAL_INFORMATION, FINANCIAL_INFORMATION
-Identifiers: USA_SOCIAL_SECURITY_NUMBER, USA_HEALTH_INSURANCE_CLAIM_NUMBER
-```
-
-**Pass Criteria:** ✅ Finding xuất hiện + Email nhận được
 
 ---
 
-### TC-05 · Instant Sample Findings (No Scan Wait)
+### TC-05 · Instant Sample Findings
 
-**Mô tả:** Dùng AWS CLI để generate sample findings **ngay lập tức**, không cần đợi Macie scan.  
-Dùng để test notification pipeline (EventBridge → SNS → Email) độc lập với scan.
+Dùng để test notification pipeline ngay lập tức mà không cần đợi scan job hoàn thành.
 
-**Cách chạy:**
 ```bash
-# Option A: dùng Makefile
-make macie-sample
-
-# Option B: dùng AWS CLI trực tiếp
 aws macie2 create-sample-findings \
   --finding-types \
     "SensitiveData:S3Object/Personal" \
@@ -201,125 +241,62 @@ aws macie2 create-sample-findings \
   --region us-east-1
 ```
 
-**Expected:**
-- 3 sample findings xuất hiện trong Macie console ngay lập tức
-- EventBridge nhận events và route tới SNS
-- Email nhận được trong vòng ~1 phút
-
-**Pass Criteria:** ✅ Email nhận được trong < 2 phút sau khi chạy lệnh
-
-> **Lưu ý:** Sample findings dùng fake data do AWS generate, không liên quan đến bucket thật.
+**Kết quả thực tế** (đã chạy): 6 findings xuất hiện ngay — xem Evidence section 3.
 
 ---
 
-### TC-06 · Negative Test — Clean File (No PII)
+### TC-06 · Negative Test (No PII)
 
-**Mô tả:** Upload file CSV **không chứa** sensitive data.  
-Kiểm tra rằng hệ thống **không** sinh false positive.
+| | |
+|--|--|
+| **File** | `test-data/clean-data.csv` |
+| **Nội dung** | Danh sách sản phẩm (product_id, name, price, stock) |
+| **Expected** | **0 findings**, **0 emails** |
+| **Mục đích** | Kiểm tra không có false positive |
 
-**File test:** `test-data/clean-data.csv`
-
-**Nội dung file:** Danh sách sản phẩm với product_id, name, category, price, stock.
-
-**Cách chạy:**
 ```bash
 aws s3 cp test-data/clean-data.csv \
-  s3://$(terraform -chdir=environments/dev output -raw target_bucket_name)/manual-upload/clean-data.csv \
-  --region us-east-1
+  s3://capstone-w10-macie-target-kduy/manual-upload/clean-data.csv
 ```
 
-**Expected:**
-- Macie scan hoàn thành (check status: `make macie-status`)
-- **KHÔNG** có finding mới được tạo
-- **KHÔNG** có email alert
-
-**Pass Criteria:** ✅ 0 findings sau khi scan clean-data.csv
-
 ---
 
-## 3. Email Notification Sample
-
-![Email Mockup](./assets/notification-email-mockup.svg)
-
----
-
-## 4. Test Checklist
-
-Chạy theo thứ tự sau để đảm bảo coverage đầy đủ:
+## 7. Test Checklist
 
 ```
 Pre-conditions:
-  [ ] terraform apply đã chạy thành công
-  [ ] Đã confirm SNS email subscription từ inbox
-  [ ] AWS CLI configured với đúng region (us-east-1)
+  [x] terraform apply hoàn thành — 19 resources created
+  [x] Macie ENABLED — account 743116070379
+  [x] Classification job RUNNING — capstone-w10-sensitive-data-scan
+  [x] EventBridge rules ENABLED — cả 2 rules
+  [x] SNS topic created — capstone-w10-macie-alerts
+  [ ] SNS subscription Confirmed — cần click email confirmation
 
-Notification Pipeline Test (chạy trước):
-  [ ] TC-05: make macie-sample → nhận email trong < 2 phút
-        ✓ Xác nhận EventBridge → SNS → Email hoạt động
-
-Upload Tests (sau khi classification job chạy):
+Test execution:
+  [x] TC-05: create-sample-findings → 6 findings generated (Evidence section 3)
+  [ ] TC-05: Email nhận được sau khi confirm subscription
   [ ] TC-01: Upload pii-sample.csv → HIGH finding + email
   [ ] TC-02: Upload financial-sample.csv → HIGH finding + email
-  [ ] TC-03: Upload credentials-sample.txt → HIGH finding + 2 emails (both rules)
+  [ ] TC-03: Upload credentials-sample.txt → HIGH finding + 2 emails
   [ ] TC-04: Upload medical-sample.json → HIGH finding + email
-  [ ] TC-06: Upload clean-data.csv → NO finding, NO email
-
-Verification:
-  [ ] Tất cả findings hiển thị đúng trong Macie console
-  [ ] Email format đúng (finding type, severity, bucket/object path, console link)
-  [ ] Rule 2 chỉ fire khi severity = HIGH
+  [ ] TC-06: Upload clean-data.csv → 0 findings, 0 emails
 ```
 
 ---
 
-## 5. Troubleshooting
-
-### Không nhận được email
-1. Kiểm tra spam folder
-2. Xác nhận đã click link "Confirm subscription" từ email đầu tiên của SNS
-3. Kiểm tra SNS subscription status:
-   ```bash
-   aws sns list-subscriptions-by-topic \
-     --topic-arn $(terraform -chdir=environments/dev output -raw sns_topic_arn) \
-     --region us-east-1
-   ```
-   Status phải là `Confirmed`, không phải `PendingConfirmation`
-
-### Findings không xuất hiện
-1. Macie scan mất 5–20 phút cho Classification Job
-2. Dùng TC-05 (`make macie-sample`) để test pipeline ngay lập tức
-3. Kiểm tra job status:
-   ```bash
-   make macie-status
-   ```
-
-### EventBridge không route
-1. Verify EventBridge rule đang `ENABLED`:
-   ```bash
-   aws events describe-rule \
-     --name "capstone-w10-macie-finding-rule" \
-     --region us-east-1
-   ```
-2. Kiểm tra finding_publishing_frequency — default là `FIFTEEN_MINUTES`
-
----
-
-## 6. Cleanup
+## 8. Cleanup
 
 ```bash
-# Xóa tất cả test uploads khỏi S3
-aws s3 rm s3://$(terraform -chdir=environments/dev output -raw target_bucket_name)/manual-upload/ --recursive
+# Xóa test uploads
+aws s3 rm s3://capstone-w10-macie-target-kduy/manual-upload/ --recursive --region us-east-1
 
 # Destroy toàn bộ infrastructure
-make destroy
+cd environments/dev && terraform destroy -auto-approve
 
-# Destroy remote state backend (xóa sau cùng)
-make state-destroy
+# Destroy remote state backend
+cd ../../s3-ddb && terraform destroy -auto-approve
 ```
-
-> ⚠️ **Lưu ý:** `make destroy` sẽ disable Macie, xóa SNS topic và EventBridge rules.  
-> Sau khi destroy, cần `make apply` lại để khôi phục.
 
 ---
 
-*Capstone W10 · Amazon Macie · AWS Security · Terraform IaC*
+*Capstone W10 · Amazon Macie · AWS Security · Terraform IaC · Account 743116070379 · us-east-1*
